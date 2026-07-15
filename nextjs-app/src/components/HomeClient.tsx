@@ -301,27 +301,7 @@ export default function HomeClient() {
           <div className="flex items-center gap-3 text-xs">
             {/* Quick toggles */}
             <div className="hidden md:flex items-center gap-2 bg-midnight/80 px-3 py-1.5 rounded-xl border border-slateGrey/50">
-              <span className="text-[9px] font-bold text-softGrey uppercase">Hızlı Toggle:</span>
-              <button 
-                onClick={toggleAdminRole} 
-                className={`text-[9px] px-2 py-0.5 rounded font-black border transition-all ${
-                  userProfile.isAdmin 
-                    ? 'bg-red-500/15 text-red-400 border-red-500/30' 
-                    : 'bg-slateGrey text-softGrey border-slateGrey'
-                }`}
-              >
-                ADMIN: {userProfile.isAdmin ? 'AÇIK' : 'KAPALI'}
-              </button>
-              <button 
-                onClick={togglePremiumRole} 
-                className={`text-[9px] px-2 py-0.5 rounded font-black border transition-all ${
-                  userProfile.isPremium 
-                    ? 'bg-successGreen/15 text-successGreen border-successGreen/30' 
-                    : 'bg-slateGrey text-softGrey border-slateGrey'
-                }`}
-              >
-                PREMIUM: {userProfile.isPremium ? 'AÇIK' : 'KAPALI'}
-              </button>
+              
             </div>
 
             {/* Account state display */}
