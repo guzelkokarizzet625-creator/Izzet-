@@ -1,10 +1,25 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc,
+  updateDoc
+} from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 
 // --- Type Definitions ---
 export interface UserProfile {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   isAdmin: boolean;
@@ -14,6 +29,7 @@ export interface UserProfile {
   premiumPriceAnnual: string;
   premiumPriceCorporate: string; // New Corporate tier
   isTwoFactorEnabled: boolean; // 2FA Status
+  remainingQuestions?: number; // Quota tracking
 }
 
 export interface CaseFile {
@@ -133,6 +149,9 @@ export interface SecurityLog {
 // State Interface
 interface AppState {
   userProfile: UserProfile;
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  authError: string | null;
   caseFiles: CaseFile[];
   selectedCaseFileId: number | null;
   documents: LegalDocument[];
@@ -173,6 +192,11 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
+  signUp: (email: string, password: string, name: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
+  signOutUser: () => Promise<void>;
+  clearAuthError: () => void;
   toggleAdminRole: () => void;
   togglePremiumRole: () => void;
   toggleTwoFactorAuth: () => void;
@@ -226,7 +250,8 @@ const defaultUser: UserProfile = {
   premiumPriceMonthly: "₺199.00",
   premiumPriceAnnual: "₺450.00",
   premiumPriceCorporate: "₺1,250.00",
-  isTwoFactorEnabled: false
+  isTwoFactorEnabled: false,
+  remainingQuestions: 3
 };
 
 const defaultAdminUsers: AdminUser[] = [
@@ -317,8 +342,313 @@ const defaultTickets: SupportTicket[] = [
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hydrated, setHydrated] = useState(false);
 
+  // Authentication States
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Helper: Translate Firebase Auth Errors
+  const translateFirebaseError = (code: string): string => {
+    switch (code) {
+      case 'auth/invalid-email':
+      case 'auth/invalid-value-(email)':
+        return 'Geçersiz e-posta adresi.';
+      case 'auth/user-disabled':
+        return 'Bu kullanıcı hesabı devre dışı bırakılmış.';
+      case 'auth/user-not-found':
+        return 'Kayıtlı kullanıcı bulunamadı.';
+      case 'auth/wrong-password':
+        return 'Hatalı şifre girdiniz.';
+      case 'auth/email-already-in-use':
+        return 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.';
+      case 'auth/weak-password':
+        return 'Şifre çok zayıf (en az 6 karakter olmalıdır).';
+      case 'auth/operation-not-allowed':
+        return 'Bu giriş yöntemine şu anda izin verilmiyor.';
+      case 'auth/invalid-credential':
+        return 'Hatalı e-posta veya şifre girdiniz.';
+      default:
+        return 'Bir kimlik doğrulama hatası oluştu. Lütfen bilgilerinizi kontrol edin.';
+    }
+  };
+
   // Core Data States
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUser);
+
+  // Auth Observer
+  useEffect(() => {
+    let isMounted = true;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+      setAuthLoading(true);
+      if (user) {
+        try {
+          const docSnap = await getDoc(doc(db, "users", user.uid));
+          if (docSnap.exists() && isMounted) {
+            setUserProfile(docSnap.data() as UserProfile);
+            setIsAuthenticated(true);
+          } else if (isMounted) {
+            // Firestore profile missing, reconstruct and set it
+            const profile: UserProfile = {
+              id: user.uid,
+              name: user.displayName || user.email?.split('@')[0] || "Avukat",
+              email: user.email || "",
+              isAdmin: false,
+              isPremium: false,
+              systemIban: "TR96 0006 2000 0001 2345 6789 01",
+              premiumPriceMonthly: "₺199.00",
+              premiumPriceAnnual: "₺450.00",
+              premiumPriceCorporate: "₺1,250.00",
+              isTwoFactorEnabled: false,
+              remainingQuestions: 3
+            };
+            try {
+              await setDoc(doc(db, "users", user.uid), profile);
+            } catch (fsErr) {
+              console.warn("Could not save profile to firestore:", fsErr);
+            }
+            setUserProfile(profile);
+            setIsAuthenticated(true);
+          }
+        } catch (e) {
+          console.error("Error fetching firestore profile:", e);
+          // offline/fallback mode
+          if (isMounted) {
+            setIsAuthenticated(true);
+          }
+        }
+      } else if (isMounted) {
+        // Double check local storage session
+        const storedUser = localStorage.getItem('al_user');
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (parsed && parsed.email) {
+              setUserProfile(parsed);
+              setIsAuthenticated(true);
+            } else {
+              setIsAuthenticated(false);
+            }
+          } catch {
+            setIsAuthenticated(false);
+          }
+        } else {
+          setIsAuthenticated(false);
+        }
+      }
+      if (isMounted) {
+        setAuthLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Authentication Handlers
+  const signUp = async (email: string, password: string, name: string): Promise<boolean> => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const initialProfile: UserProfile = {
+        id: user.uid,
+        name: name,
+        email: email,
+        isAdmin: false,
+        isPremium: false,
+        systemIban: "TR96 0006 2000 0001 2345 6789 01",
+        premiumPriceMonthly: "₺199.00",
+        premiumPriceAnnual: "₺450.00",
+        premiumPriceCorporate: "₺1,250.00",
+        isTwoFactorEnabled: false,
+        remainingQuestions: 3
+      };
+      try {
+        await setDoc(doc(db, "users", user.uid), initialProfile);
+      } catch (fsErr) {
+        console.warn("Could not write initial profile to firestore:", fsErr);
+      }
+      setUserProfile(initialProfile);
+      setIsAuthenticated(true);
+      addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu. Kullanıcı: ${email}`, 'INFO');
+      setAuthLoading(false);
+      return true;
+    } catch (e: any) {
+      console.warn("Firebase SignUp failed, trying local storage fallback", e);
+      // Fallback
+      const localUsersStr = localStorage.getItem('al_users_db');
+      const localUsers = localUsersStr ? JSON.parse(localUsersStr) : [];
+      
+      const alreadyExists = localUsers.some((u: any) => u.email === email);
+      if (alreadyExists) {
+        setAuthError("Bu e-posta adresi zaten kayıtlı.");
+        setAuthLoading(false);
+        return false;
+      }
+
+      const newUid = "local_" + Date.now();
+      const newLocalUser = { uid: newUid, email, password, name, isAdmin: false, isPremium: false };
+      localUsers.push(newLocalUser);
+      localStorage.setItem('al_users_db', JSON.stringify(localUsers));
+
+      const profile: UserProfile = {
+        id: newUid,
+        name: name,
+        email: email,
+        isAdmin: false,
+        isPremium: false,
+        systemIban: "TR96 0006 2000 0001 2345 6789 01",
+        premiumPriceMonthly: "₺199.00",
+        premiumPriceAnnual: "₺450.00",
+        premiumPriceCorporate: "₺1,250.00",
+        isTwoFactorEnabled: false
+      };
+      setUserProfile(profile);
+      setIsAuthenticated(true);
+      addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
+      setAuthLoading(false);
+      return true;
+    }
+  };
+
+  const signIn = async (email: string, password: string): Promise<boolean> => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      let profile: UserProfile;
+      try {
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+          profile = docSnap.data() as UserProfile;
+        } else {
+          profile = {
+            id: user.uid,
+            name: user.displayName || email.split('@')[0],
+            email: email,
+            isAdmin: false,
+            isPremium: false,
+            systemIban: "TR96 0006 2000 0001 2345 6789 01",
+            premiumPriceMonthly: "₺199.00",
+            premiumPriceAnnual: "₺450.00",
+            premiumPriceCorporate: "₺1,250.00",
+            isTwoFactorEnabled: false
+          };
+          await setDoc(doc(db, "users", user.uid), profile);
+        }
+      } catch (e) {
+        console.warn("Firestore profile fetch failed during login:", e);
+        profile = {
+          id: user.uid,
+          name: user.displayName || email.split('@')[0],
+          email: email,
+          isAdmin: false,
+          isPremium: false,
+          systemIban: "TR96 0006 2000 0001 2345 6789 01",
+          premiumPriceMonthly: "₺199.00",
+          premiumPriceAnnual: "₺450.00",
+          premiumPriceCorporate: "₺1,250.00",
+          isTwoFactorEnabled: false
+        };
+      }
+      setUserProfile(profile);
+      setIsAuthenticated(true);
+      addSecurityLog('JWT_VERIFY', `Oturum başarıyla açıldı. Kullanıcı: ${email}`, 'INFO');
+      setAuthLoading(false);
+      return true;
+    } catch (e: any) {
+      console.warn("Firebase SignIn failed, trying local storage fallback", e);
+      const localUsersStr = localStorage.getItem('al_users_db');
+      const localUsers = localUsersStr ? JSON.parse(localUsersStr) : [];
+      const matchedUser = localUsers.find((u: any) => u.email === email && u.password === password);
+      
+      if (matchedUser) {
+        const profile: UserProfile = {
+          id: matchedUser.uid,
+          name: matchedUser.name,
+          email: matchedUser.email,
+          isAdmin: matchedUser.isAdmin || false,
+          isPremium: matchedUser.isPremium || false,
+          systemIban: "TR96 0006 2000 0001 2345 6789 01",
+          premiumPriceMonthly: "₺199.00",
+          premiumPriceAnnual: "₺450.00",
+          premiumPriceCorporate: "₺1,250.00",
+          isTwoFactorEnabled: matchedUser.isTwoFactorEnabled || false
+        };
+        setUserProfile(profile);
+        setIsAuthenticated(true);
+        addSecurityLog('JWT_VERIFY', `Oturum başarıyla açıldı (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
+        setAuthLoading(false);
+        return true;
+      } else {
+        const trMessage = translateFirebaseError(e.code || e.message);
+        setAuthError(trMessage);
+        setAuthLoading(false);
+        return false;
+      }
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<boolean> => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      addSecurityLog('JWT_VERIFY', `Şifre sıfırlama e-postası gönderildi. Kullanıcı: ${email}`, 'INFO');
+      setAuthLoading(false);
+      return true;
+    } catch (e: any) {
+      console.warn("Firebase ResetPassword failed, checking local database", e);
+      const localUsersStr = localStorage.getItem('al_users_db');
+      const localUsers = localUsersStr ? JSON.parse(localUsersStr) : [];
+      const userExists = localUsers.some((u: any) => u.email === email);
+      
+      if (userExists) {
+        addSecurityLog('JWT_VERIFY', `Şifre sıfırlama simüle edildi (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
+        setAuthLoading(false);
+        return true;
+      } else {
+        const trMessage = translateFirebaseError(e.code || e.message);
+        setAuthError(trMessage || "Kayıtlı kullanıcı bulunamadı.");
+        setAuthLoading(false);
+        return false;
+      }
+    }
+  };
+
+  const signOutUser = async () => {
+    setAuthLoading(true);
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn("Firebase signout failed", e);
+    }
+    setUserProfile({
+      id: 0,
+      name: "",
+      email: "",
+      isAdmin: false,
+      isPremium: false,
+      systemIban: "TR96 0006 2000 0001 2345 6789 01",
+      premiumPriceMonthly: "₺199.00",
+      premiumPriceAnnual: "₺450.00",
+      premiumPriceCorporate: "₺1,250.00",
+      isTwoFactorEnabled: false
+    });
+    setIsAuthenticated(false);
+    localStorage.removeItem('al_user');
+    addSecurityLog('JWT_VERIFY', "Oturum kapatıldı.", 'INFO');
+    setAuthLoading(false);
+  };
+
+  const clearAuthError = () => {
+    setAuthError(null);
+  };
   const [caseFiles, setCaseFiles] = useState<CaseFile[]>(defaultCases);
   const [selectedCaseFileId, setSelectedCaseFileId] = useState<number | null>(1);
   const [documents, setDocuments] = useState<LegalDocument[]>(defaultDocs);
@@ -741,18 +1071,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Gemini AI Entegrasyonları ---
   const callGeminiApi = async (prompt: string, taskType: string): Promise<string> => {
+    // Check quota for Free/Standard users
+    if (!userProfile.isPremium) {
+      const currentRemaining = typeof userProfile.remainingQuestions === 'number' ? userProfile.remainingQuestions : 3;
+      if (currentRemaining <= 0) {
+        throw new Error("GÜNLÜK KOTA SINIRINA ULAŞILDI: Günlük yapay zekâ arama ve soru hakkınız dolmuştur. Sınırsız arama, dilekçe tanzimi ve dava simülasyonu için lütfen Premium üyeliğe yükselin.");
+      }
+    }
+
     try {
+      // Modify prompt for free users to enforce "Basic answers only" and "Maximum 250 words per answer"
+      let finalPrompt = prompt;
+      if (!userProfile.isPremium) {
+        finalPrompt = `${prompt}\n\n[SİSTEM TALİMATI: Kullanıcı Ücretsiz Plandadır. Lütfen cevabı temel düzeyde, sade ve en fazla 250 kelime olacak şekilde sınırlandırın. Cevabın sonunda başka bir şey eklemeyin.]`;
+      } else {
+        finalPrompt = `${prompt}\n\n[SİSTEM TALİMATI: Kullanıcı Premium Plandadır. Lütfen son derece detaylı, derinlemesine akademik ve pratik bir hukuki analiz yapın.]`;
+      }
+
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ prompt, taskType })
+        body: JSON.stringify({ prompt: finalPrompt, taskType })
       });
       if (!response.ok) {
         throw new Error('API request failed');
       }
       const data = await response.json();
+      
+      // If call is successful and user is not premium, decrement remainingQuestions!
+      if (!userProfile.isPremium) {
+        const currentRemaining = typeof userProfile.remainingQuestions === 'number' ? userProfile.remainingQuestions : 3;
+        const nextRemaining = Math.max(0, currentRemaining - 1);
+        const updatedProfile = {
+          ...userProfile,
+          remainingQuestions: nextRemaining
+        };
+        setUserProfile(updatedProfile);
+        
+        // Persist to local storage & Firestore if possible
+        localStorage.setItem('al_user', JSON.stringify(updatedProfile));
+        try {
+          await updateDoc(doc(db, "users", userProfile.id.toString()), {
+            remainingQuestions: nextRemaining
+          });
+        } catch (err) {
+          console.warn("Could not save updated quota to firestore:", err);
+        }
+      }
+
       return data.text || '';
     } catch (error) {
       console.error("Gemini API call failed:", error);
@@ -954,6 +1322,9 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
   return (
     <AppContext.Provider value={{
       userProfile,
+      isAuthenticated,
+      authLoading,
+      authError,
       caseFiles,
       selectedCaseFileId,
       documents,
@@ -991,6 +1362,11 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       voiceText,
       voiceResponse,
 
+      signUp,
+      signIn,
+      resetPassword,
+      signOutUser,
+      clearAuthError,
       toggleAdminRole,
       togglePremiumRole,
       toggleTwoFactorAuth,

@@ -16,3 +16,9 @@
 local.properties
 .env
 debug.keystore
+
+# Next.js
+nextjs-app/node_modules/
+nextjs-app/.next/
+nextjs-app/out/
+

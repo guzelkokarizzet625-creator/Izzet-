@@ -105,7 +105,7 @@ export default function CaseWorkspace() {
     // Update cumulative trial score
     setTrialScore(prev => Math.min(100, Math.max(30, Math.round((prev * 3 + statementScore) / 4))));
 
-    const updatedMessages = [
+    const updatedMessages: CourtMessage[] = [
       ...courtMessages,
       {
         id: userMsgId,

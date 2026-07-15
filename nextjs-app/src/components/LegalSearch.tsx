@@ -15,6 +15,7 @@ import {
 
 export default function LegalSearch() {
   const { 
+    userProfile,
     searchResult, 
     searchLoading, 
     runAiLegalSearch, 
@@ -53,14 +54,25 @@ export default function LegalSearch() {
   return (
     <div className="bg-charcoal border border-slateGrey/60 rounded-2xl p-6 space-y-6 max-w-5xl mx-auto">
       {/* Intro */}
-      <div className="space-y-1">
-        <h1 className="text-xl font-bold text-goldLight flex items-center gap-2">
-          <Search className="w-5 h-5 text-goldDark" />
-          Yapay Zekâ Destekli Hukuki Arama Terminali
-        </h1>
-        <p className="text-xs text-softGrey">
-          Güncel Türk mevzuatı, kanun maddeleri ve Yargıtay emsal kararlarını saniyeler içinde tarayın
-        </p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold text-goldLight flex items-center gap-2">
+            <Search className="w-5 h-5 text-goldDark" />
+            Yapay Zekâ Destekli Hukuki Arama Terminali
+          </h1>
+          <p className="text-xs text-softGrey">
+            Güncel Türk mevzuatı, kanun maddeleri ve Yargıtay emsal kararlarını saniyeler içinde tarayın
+          </p>
+        </div>
+        {userProfile.isPremium ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-goldDark/10 text-goldLight text-[10px] font-black border border-goldDark/30 rounded-xl shrink-0">
+            ✨ Sınırsız Soru Hakkı
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slateGrey/20 text-goldLight text-[10px] font-black border border-slateGrey/30 rounded-xl shrink-0">
+            Bugünkü Kalan Soru: {userProfile.remainingQuestions ?? 3} / 3
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

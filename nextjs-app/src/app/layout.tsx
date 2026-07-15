@@ -1,7 +1,8 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { AppProvider } from '@/context/AppContext';
 import './globals.css';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'AL Hukuk AI — Akıllı Dava Simülatörü & Hukuk Asistanı',
@@ -18,9 +19,7 @@ export default function RootLayout({
   return (
     <html lang="tr" className="scroll-smooth">
       <body className="bg-midnight text-ivory min-h-screen antialiased selection:bg-goldDark selection:text-midnight">
-        <AppProvider>
-          {children}
-        </AppProvider>
+        {children}
       </body>
     </html>
   );
