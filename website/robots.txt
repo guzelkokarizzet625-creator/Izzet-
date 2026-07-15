@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /profile/private/
+
+Sitemap: https://al-hukuk-ai.com/sitemap.xml

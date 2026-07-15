@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://al-hukuk-ai.web.app/sitemap.xml
