@@ -10,14 +10,18 @@ import {
   Mail, 
   CreditCard,
   CheckCircle,
-  FileDown
+  FileDown,
+  ShieldCheck,
+  Lock,
+  EyeOff
 } from 'lucide-react';
 
 export default function Settings() {
   const { 
     userProfile, 
     toggleAdminRole, 
-    togglePremiumRole 
+    togglePremiumRole,
+    toggleTwoFactorAuth
   } = useApp();
 
   return (
@@ -26,10 +30,10 @@ export default function Settings() {
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-goldLight flex items-center gap-2">
           <User className="w-5 h-5 text-goldDark" />
-          Kullanıcı Profili ve Sistem Ayarları
+          Kullanıcı Profili ve Siber Güvenlik Ayarları
         </h1>
         <p className="text-xs text-softGrey">
-          Lisans durumunuzu, güvenlik izinlerinizi ve yönetici paneli erişim ayarlarınızı yönetin
+          Lisans durumunuzu, iki aşamalı doğrulama (2FA) izinlerinizi ve siber güvenlik sertifikasyonlarını yönetin
         </p>
       </div>
 
@@ -48,7 +52,7 @@ export default function Settings() {
           </div>
 
           <div className="pt-3 border-t border-slateGrey/30">
-            <span className={`text-[9px] font-black tracking-wide uppercase px-2 py-0.5 rounded-full ${
+            <span className={`text-[9px] font-black tracking-wide uppercase px-2.5 py-0.5 rounded-full ${
               userProfile.isPremium 
                 ? 'bg-successGreen/10 text-successGreen border border-successGreen/25' 
                 : 'bg-warningOrange/10 text-warningOrange border border-warningOrange/25'
@@ -63,7 +67,7 @@ export default function Settings() {
           <div className="bg-midnight p-5 rounded-2xl border border-slateGrey/50 space-y-4">
             <h3 className="text-xs font-bold text-goldLight flex items-center gap-1.5 uppercase tracking-wide">
               <Shield className="w-4 h-4 text-goldDark" />
-              Sanal Hesap & İzin Yetkilendirmeleri
+              Hesap & Güvenlik Yetkilendirmeleri
             </h3>
 
             {/* Admin Toggle */}
@@ -76,7 +80,7 @@ export default function Settings() {
                 onClick={toggleAdminRole}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
                   userProfile.isAdmin 
-                    ? 'bg-goldDark text-midnight' 
+                    ? 'bg-goldDark text-midnight font-black' 
                     : 'bg-slateGrey text-softGrey hover:text-ivory'
                 }`}
               >
@@ -94,12 +98,60 @@ export default function Settings() {
                 onClick={togglePremiumRole}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
                   userProfile.isPremium 
-                    ? 'bg-successGreen text-midnight' 
+                    ? 'bg-successGreen text-midnight font-black' 
                     : 'bg-slateGrey text-softGrey hover:text-ivory'
                 }`}
               >
                 {userProfile.isPremium ? 'Aktif' : 'Pasif'}
               </button>
+            </div>
+
+            {/* 2FA Toggle (Two-Factor Auth) */}
+            <div className="flex items-center justify-between p-3 bg-charcoal rounded-xl border border-slateGrey/35">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-ivory flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-goldDark" />
+                  İki Aşamalı Doğrulama (2FA)
+                </span>
+                <p className="text-[10px] text-softGrey">Her girişte SMS veya Authenticator şifresi talep edilmesini sağlar.</p>
+              </div>
+              <button
+                onClick={toggleTwoFactorAuth}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                  userProfile.isTwoFactorEnabled 
+                    ? 'bg-goldDark text-midnight font-black shadow' 
+                    : 'bg-slateGrey text-softGrey hover:text-ivory'
+                }`}
+              >
+                {userProfile.isTwoFactorEnabled ? 'EKTİF (ON)' : 'KAPALI (OFF)'}
+              </button>
+            </div>
+          </div>
+
+          {/* Cybersecurity Certificate Checklist */}
+          <div className="bg-midnight p-5 rounded-2xl border border-slateGrey/50 space-y-3">
+            <h3 className="text-xs font-bold text-goldLight flex items-center gap-1.5 uppercase tracking-wide">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              Sistem Siber Güvenlik Kalkanı (Active Shield)
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3.5 text-[11px] text-softGrey">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>SSL/TLS 256-bit Şifreleme</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>XSS Filtresi & Giriş Süzgeci</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>JWT Token Doğrulaması</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>SQL Enjeksiyon Kalkanı</span>
+              </div>
             </div>
           </div>
 

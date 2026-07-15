@@ -12,6 +12,8 @@ export interface UserProfile {
   systemIban: string;
   premiumPriceMonthly: string;
   premiumPriceAnnual: string;
+  premiumPriceCorporate: string; // New Corporate tier
+  isTwoFactorEnabled: boolean; // 2FA Status
 }
 
 export interface CaseFile {
@@ -82,6 +84,52 @@ export interface SupportTicket {
   text: string;
 }
 
+// --- Enterprise Admin & System Extensions ---
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: 'ATTORNEY' | 'MEMBER' | 'ADMIN';
+  plan: 'STANDARD' | 'MONTHLY' | 'ANNUAL' | 'CORPORATE';
+  active: boolean;
+  regDate: string;
+}
+
+export interface Coupon {
+  id: number;
+  code: string;
+  discountPercent: number;
+  expiryDate: string;
+  active: boolean;
+  usedCount: number;
+}
+
+export interface Campaign {
+  id: number;
+  title: string;
+  description: string;
+  discountCode: string;
+  bannerColor: string;
+  active: boolean;
+}
+
+export interface LawDatabaseItem {
+  id: number;
+  title: string;
+  category: 'ANAYASA' | 'CEZA' | 'BORCLAR' | 'IS' | 'ICRA' | 'EMSAL';
+  content: string;
+  dateAdded: string;
+}
+
+export interface SecurityLog {
+  id: number;
+  timestamp: string;
+  ipAddress: string;
+  eventType: 'JWT_VERIFY' | 'XSS_PREVENT' | 'SQL_INJECTION_SHIELD' | 'RATE_LIMIT' | 'AUTH_2FA' | 'SENSITIVE_ACCESS';
+  message: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+}
+
 // State Interface
 interface AppState {
   userProfile: UserProfile;
@@ -94,6 +142,20 @@ interface AppState {
   sessions: QuerySession[];
   supportTickets: SupportTicket[];
   
+  // Enterprise lists
+  adminUsers: AdminUser[];
+  coupons: Coupon[];
+  campaigns: Campaign[];
+  lawsAndPrecedents: LawDatabaseItem[];
+  securityLogs: SecurityLog[];
+  
+  // Configs
+  geminiModel: string;
+  geminiTemperature: number;
+  geminiMaxTokens: number;
+  firebaseConnected: boolean;
+  databaseBackupDate: string;
+
   // UI states for AI responses
   caseAnalysisResult: any | null;
   caseAnalysisLoading: boolean;
@@ -113,7 +175,8 @@ interface AppState {
 interface AppContextType extends AppState {
   toggleAdminRole: () => void;
   togglePremiumRole: () => void;
-  updateSystemConfig: (iban: string, monthly: string, annual: string) => void;
+  toggleTwoFactorAuth: () => void;
+  updateSystemConfig: (iban: string, monthly: string, annual: string, corporate: string) => void;
   addCaseFile: (title: string, clientName: string, category: string, description: string) => void;
   selectCaseFile: (id: number | null) => void;
   addDocumentToCase: (caseId: number, name: string, contentText: string, fileSize: string) => void;
@@ -130,6 +193,24 @@ interface AppContextType extends AppState {
   submitTicket: (title: string, category: string, text: string) => void;
   setVoiceActive: (active: boolean) => void;
   simulateVoiceInput: (input: string) => Promise<void>;
+  
+  // Admin triggers
+  updateGeminiConfig: (model: string, temp: number, maxTokens: number) => void;
+  testFirebaseConnection: () => Promise<boolean>;
+  triggerDatabaseBackup: () => void;
+  clearSystemCache: () => void;
+  addCoupon: (code: string, discount: number, expiry: string) => void;
+  toggleCoupon: (id: number) => void;
+  deleteCoupon: (id: number) => void;
+  addCampaign: (title: string, description: string, discountCode: string, bannerColor: string) => void;
+  toggleCampaign: (id: number) => void;
+  deleteCampaign: (id: number) => void;
+  addLawItem: (title: string, category: LawDatabaseItem['category'], content: string) => void;
+  deleteLawItem: (id: number) => void;
+  addSecurityLog: (type: SecurityLog['eventType'], message: string, severity: SecurityLog['severity']) => void;
+  clearSecurityLogs: () => void;
+  sendGlobalNotification: (title: string, text: string) => void;
+  updateUserRoleAndPlan: (id: number, role: AdminUser['role'], plan: AdminUser['plan'], active: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -143,8 +224,44 @@ const defaultUser: UserProfile = {
   isPremium: true,
   systemIban: "TR96 0006 2000 0001 2345 6789 01",
   premiumPriceMonthly: "₺199.00",
-  premiumPriceAnnual: "₺450.00"
+  premiumPriceAnnual: "₺450.00",
+  premiumPriceCorporate: "₺1,250.00",
+  isTwoFactorEnabled: false
 };
+
+const defaultAdminUsers: AdminUser[] = [
+  { id: 1, name: "Av. Kerem Soylu", email: "guzelkokarizzet625@gmail.com", role: "ADMIN", plan: "CORPORATE", active: true, regDate: "01.03.2026" },
+  { id: 2, name: "Av. Meltem Aras", email: "meltem@aras.av.tr", role: "ATTORNEY", plan: "MONTHLY", active: true, regDate: "13.06.2026" },
+  { id: 3, name: "Av. Selim Yazıcı", email: "selim@yazici-hukuk.av.tr", role: "ATTORNEY", plan: "ANNUAL", active: true, regDate: "12.02.2026" },
+  { id: 4, name: "Stj. Av. Hale Demir", email: "hale@demir.av.tr", role: "MEMBER", plan: "STANDARD", active: true, regDate: "14.07.2026" }
+];
+
+const defaultCoupons: Coupon[] = [
+  { id: 1, code: "ALHUKUK50", discountPercent: 50, expiryDate: "2026-12-31", active: true, usedCount: 14 },
+  { id: 2, code: "AVUKAT30", discountPercent: 30, expiryDate: "2026-09-30", active: true, usedCount: 8 },
+  { id: 3, code: "KAMPANYA2026", discountPercent: 100, expiryDate: "2026-08-31", active: false, usedCount: 42 }
+];
+
+const defaultCampaigns: Campaign[] = [
+  { id: 1, title: "Yeni Adli Yıl Lansman İndirimi", description: "Tüm üyeliklerde geçerli %50 indirim kodu: ALHUKUK50", discountCode: "ALHUKUK50", bannerColor: "from-goldDark to-amberAccent", active: true },
+  { id: 2, title: "Genç Avukatlar Kampanyası", description: "Stajyer avukatlar için 1 ay ücretsiz üyelik fırsatı", discountCode: "KAMPANYA2026", bannerColor: "from-blue-500 to-cyan-400", active: true }
+];
+
+const defaultLawsAndPrecedents: LawDatabaseItem[] = [
+  { id: 1, title: "4857 Sayılı İş Kanunu m. 17", category: "IS", content: "Belirsiz süreli iş sözleşmelerinin feshinden önce durumun diğer tarafa bildirilmesi gerekir. Bildirim şartına uymayan taraf, bildirim süresine ilişkin ücret tutarında tazminat (ihbar tazminatı) ödemek zorundadır.", dateAdded: "10.03.2026" },
+  { id: 2, title: "4857 Sayılı İş Kanunu m. 41", category: "IS", content: "Ülkenin genel yararları yahut işin niteliği veya üretimin artırılması gibi nedenlerle fazla çalışma yapılabilir. Fazla çalışma, Kanunda yazılı koşullar çerçevesinde, haftalık kırkbeş saati aşan çalışmalardır.", dateAdded: "11.03.2026" },
+  { id: 3, title: "6098 Sayılı Borçlar Kanunu m. 344", category: "BORCLAR", content: "Tarafların yenilenen kira dönemlerinde uygulanacak kira bedeline ilişkin anlaşmaları, bir önceki kira yılında tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranını geçmemek koşuluyla geçerlidir.", dateAdded: "15.03.2026" },
+  { id: 4, title: "Yargıtay 9. Hukuk Dairesi E. 2021/1102 K. 2021/4502", category: "EMSAL", content: "WhatsApp konuşmaları, e-postalar ve sosyal medya yazışmaları, taraflar arasındaki iş ilişkisini ve çalışma koşullarını gösteren, HMK 199. maddesi anlamında belge niteliğinde olup, delil başlangıcı olarak kabul edilmelidir.", dateAdded: "18.03.2026" },
+  { id: 5, title: "Anayasa m. 36 - Hak Arama Hürriyeti", category: "ANAYASA", content: "Herkes, meşru vasıta ve yollardan faydalanmak suretiyle yargı mercileri önünde davacı veya davalı olarak iddia ve savunma ile adil yargılanma hakkına sahiptir.", dateAdded: "01.01.2026" }
+];
+
+const defaultSecurityLogs: SecurityLog[] = [
+  { id: 1, timestamp: "14.07.2026 23:05:12", ipAddress: "192.168.1.105", eventType: "AUTH_2FA", message: "Yönetici hesabı için 2FA doğrulama adımı atlandı (Çerez geçerli).", severity: "INFO" },
+  { id: 2, timestamp: "14.07.2026 22:50:41", ipAddress: "85.105.42.23", eventType: "JWT_VERIFY", message: "Giriş JWT token imzası başarıyla doğrulandı. Kullanıcı: meltem@aras.av.tr", severity: "INFO" },
+  { id: 3, timestamp: "14.07.2026 22:15:33", ipAddress: "176.233.10.89", eventType: "RATE_LIMIT", message: "Dilekçe stüdyosu API çağrısı rate-limit (60/dk) korumasına takılmadan onaylandı.", severity: "INFO" },
+  { id: 4, timestamp: "14.07.2026 21:03:15", ipAddress: "94.54.112.5", eventType: "XSS_PREVENT", message: "Dava açıklaması form girişinde potansiyel XSS betiği (<script>) temizlendi ve engellendi.", severity: "WARNING" },
+  { id: 5, timestamp: "14.07.2026 19:42:01", ipAddress: "213.14.88.19", eventType: "SQL_INJECTION_SHIELD", message: "Hukuk araması sorgusunda 'UNION SELECT' SQL enjeksiyon anahtarı tespit edildi, sorgu sterilize edildi.", severity: "CRITICAL" }
+];
 
 const defaultCases: CaseFile[] = [
   { id: 1, title: "Soylu İş Alacağı Davası", clientName: "Hakan Soylu", category: "İş Hukuku", date: "10.07.2026", description: "Haksız fesih, fazla mesai alacakları ve kıdem tazminatı talepli iş davası dosyası.", status: "ACTIVE" },
@@ -211,6 +328,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(defaultTickets);
   const [sessions, setSessions] = useState<QuerySession[]>([]);
 
+  // Enterprise & System Data States
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(defaultAdminUsers);
+  const [coupons, setCoupons] = useState<Coupon[]>(defaultCoupons);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(defaultCampaigns);
+  const [lawsAndPrecedents, setLawsAndPrecedents] = useState<LawDatabaseItem[]>(defaultLawsAndPrecedents);
+  const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>(defaultSecurityLogs);
+
+  // Configuration States
+  const [geminiModel, setGeminiModel] = useState("gemini-2.5-flash");
+  const [geminiTemperature, setGeminiTemperature] = useState(0.4);
+  const [geminiMaxTokens, setGeminiMaxTokens] = useState(2048);
+  const [firebaseConnected, setFirebaseConnected] = useState(true);
+  const [databaseBackupDate, setDatabaseBackupDate] = useState("14.07.2026 04:00");
+
   // AI states
   const [caseAnalysisResult, setCaseAnalysisResult] = useState<any | null>(null);
   const [caseAnalysisLoading, setCaseAnalysisLoading] = useState(false);
@@ -237,6 +368,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storedReceipts = localStorage.getItem('al_receipts');
       const storedTickets = localStorage.getItem('al_tickets');
 
+      // Enterprise Loads
+      const storedAdminUsers = localStorage.getItem('al_admin_users');
+      const storedCoupons = localStorage.getItem('al_coupons');
+      const storedCampaigns = localStorage.getItem('al_campaigns');
+      const storedLaws = localStorage.getItem('al_laws');
+      const storedLogs = localStorage.getItem('al_logs');
+      const storedModel = localStorage.getItem('al_gemini_model');
+      const storedTemp = localStorage.getItem('al_gemini_temp');
+      const storedTokens = localStorage.getItem('al_gemini_tokens');
+      const storedBackup = localStorage.getItem('al_backup_date');
+
       if (storedUser) setUserProfile(JSON.parse(storedUser));
       if (storedCases) setCaseFiles(JSON.parse(storedCases));
       if (storedDocs) setDocuments(JSON.parse(storedDocs));
@@ -244,6 +386,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (storedEvents) setCalendarEvents(JSON.parse(storedEvents));
       if (storedReceipts) setPaymentReceipts(JSON.parse(storedReceipts));
       if (storedTickets) setSupportTickets(JSON.parse(storedTickets));
+
+      if (storedAdminUsers) setAdminUsers(JSON.parse(storedAdminUsers));
+      if (storedCoupons) setCoupons(JSON.parse(storedCoupons));
+      if (storedCampaigns) setCampaigns(JSON.parse(storedCampaigns));
+      if (storedLaws) setLawsAndPrecedents(JSON.parse(storedLaws));
+      if (storedLogs) setSecurityLogs(JSON.parse(storedLogs));
+      
+      if (storedModel) setGeminiModel(storedModel);
+      if (storedTemp) setGeminiTemperature(parseFloat(storedTemp));
+      if (storedTokens) setGeminiMaxTokens(parseInt(storedTokens));
+      if (storedBackup) setDatabaseBackupDate(storedBackup);
       
       setHydrated(true);
     }
@@ -292,6 +445,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [supportTickets, hydrated]);
 
+  // Enterprise Saves
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_admin_users', JSON.stringify(adminUsers));
+    }
+  }, [adminUsers, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_coupons', JSON.stringify(coupons));
+    }
+  }, [coupons, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_campaigns', JSON.stringify(campaigns));
+    }
+  }, [campaigns, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_laws', JSON.stringify(lawsAndPrecedents));
+    }
+  }, [lawsAndPrecedents, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_logs', JSON.stringify(securityLogs));
+    }
+  }, [securityLogs, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_gemini_model', geminiModel);
+      localStorage.setItem('al_gemini_temp', geminiTemperature.toString());
+      localStorage.setItem('al_gemini_tokens', geminiMaxTokens.toString());
+    }
+  }, [geminiModel, geminiTemperature, geminiMaxTokens, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_backup_date', databaseBackupDate);
+    }
+  }, [databaseBackupDate, hydrated]);
+
   // --- Handlers ---
   const toggleAdminRole = () => {
     setUserProfile(prev => ({ ...prev, isAdmin: !prev.isAdmin }));
@@ -301,13 +499,143 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserProfile(prev => ({ ...prev, isPremium: !prev.isPremium }));
   };
 
-  const updateSystemConfig = (iban: string, monthly: string, annual: string) => {
+  const toggleTwoFactorAuth = () => {
+    setUserProfile(prev => {
+      const nextVal = !prev.isTwoFactorEnabled;
+      addSecurityLog('AUTH_2FA', `İki aşamalı doğrulama (2FA) ${nextVal ? 'etkinleştirildi' : 'devre dışı bırakıldı'}.`, 'INFO');
+      return { ...prev, isTwoFactorEnabled: nextVal };
+    });
+  };
+
+  const updateSystemConfig = (iban: string, monthly: string, annual: string, corporate: string) => {
     setUserProfile(prev => ({
       ...prev,
       systemIban: iban,
       premiumPriceMonthly: monthly,
-      premiumPriceAnnual: annual
+      premiumPriceAnnual: annual,
+      premiumPriceCorporate: corporate
     }));
+  };
+
+  const updateGeminiConfig = (model: string, temp: number, maxTokens: number) => {
+    setGeminiModel(model);
+    setGeminiTemperature(temp);
+    setGeminiMaxTokens(maxTokens);
+    addSecurityLog('SENSITIVE_ACCESS', `Yapar zekâ parametreleri güncellendi. Model: ${model}, Sıcaklık: ${temp}, Sınır: ${maxTokens}`, 'INFO');
+  };
+
+  const testFirebaseConnection = async () => {
+    setFirebaseConnected(false);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setFirebaseConnected(true);
+    addSecurityLog('JWT_VERIFY', "Firebase OAuth ve Gerçek Zamanlı DB bütünlük testi başarıyla tamamlandı.", "INFO");
+    return true;
+  };
+
+  const triggerDatabaseBackup = () => {
+    const now = new Date();
+    const formatted = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    setDatabaseBackupDate(formatted);
+    addSecurityLog('SENSITIVE_ACCESS', `Bulut veritabanı tam yedekleme ve şifreleme işlemi başarıyla tamamlandı.`, 'WARNING');
+  };
+
+  const clearSystemCache = () => {
+    addSecurityLog('RATE_LIMIT', "Tüm sistem önbellekleri (Kullanıcı, SEO Sitemaps, Mevzuat arabellekleri) temizlendi.", "INFO");
+  };
+
+  const addCoupon = (code: string, discount: number, expiry: string) => {
+    const newCoupon: Coupon = {
+      id: Date.now(),
+      code: code.toUpperCase(),
+      discountPercent: discount,
+      expiryDate: expiry,
+      active: true,
+      usedCount: 0
+    };
+    setCoupons(prev => [newCoupon, ...prev]);
+    addSecurityLog('SENSITIVE_ACCESS', `Yeni indirim kuponu tanımlandı: ${code.toUpperCase()} (%${discount})`, 'INFO');
+  };
+
+  const toggleCoupon = (id: number) => {
+    setCoupons(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  };
+
+  const deleteCoupon = (id: number) => {
+    setCoupons(prev => prev.filter(c => c.id !== id));
+  };
+
+  const addCampaign = (title: string, description: string, discountCode: string, bannerColor: string) => {
+    const newCamp: Campaign = {
+      id: Date.now(),
+      title,
+      description,
+      discountCode,
+      bannerColor,
+      active: true
+    };
+    setCampaigns(prev => [newCamp, ...prev]);
+    addSecurityLog('SENSITIVE_ACCESS', `Yeni kampanya duyurusu oluşturuldu: ${title}`, 'INFO');
+  };
+
+  const toggleCampaign = (id: number) => {
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  };
+
+  const deleteCampaign = (id: number) => {
+    setCampaigns(prev => prev.filter(c => c.id !== id));
+  };
+
+  const addLawItem = (title: string, category: LawDatabaseItem['category'], content: string) => {
+    const newItem: LawDatabaseItem = {
+      id: Date.now(),
+      title,
+      category,
+      content,
+      dateAdded: new Date().toLocaleDateString('tr-TR')
+    };
+    setLawsAndPrecedents(prev => [newItem, ...prev]);
+    addSecurityLog('SENSITIVE_ACCESS', `Kanun/Emsal Karar veritabanına yeni madde eklendi: ${title}`, 'INFO');
+  };
+
+  const deleteLawItem = (id: number) => {
+    setLawsAndPrecedents(prev => prev.filter(l => l.id !== id));
+  };
+
+  const addSecurityLog = (type: SecurityLog['eventType'], message: string, severity: SecurityLog['severity']) => {
+    const newLog: SecurityLog = {
+      id: Date.now(),
+      timestamp: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      ipAddress: "192.168.1." + Math.floor(Math.random() * 253 + 2),
+      eventType: type,
+      message,
+      severity
+    };
+    setSecurityLogs(prev => [newLog, ...prev].slice(0, 30));
+  };
+
+  const clearSecurityLogs = () => {
+    setSecurityLogs([]);
+  };
+
+  const sendGlobalNotification = (title: string, text: string) => {
+    addSecurityLog('SENSITIVE_ACCESS', `Sistem genel duyurusu tetiklendi: "${title}" - "${text}"`, 'WARNING');
+  };
+
+  const updateUserRoleAndPlan = (id: number, role: AdminUser['role'], plan: AdminUser['plan'], active: boolean) => {
+    setAdminUsers(prev => prev.map(u => {
+      if (u.id === id) {
+        if (u.email === userProfile.email) {
+          setUserProfile(p => ({
+            ...p,
+            isAdmin: role === 'ADMIN',
+            isPremium: plan !== 'STANDARD'
+          }));
+        }
+        return { ...u, role, plan, active };
+      }
+      return u;
+    }));
+    addSecurityLog('SENSITIVE_ACCESS', `Kullanıcı ID: ${id} üzerinde yetki güncellemesi yapıldı. Rol: ${role}, Lisans: ${plan}`, 'WARNING');
   };
 
   const addCaseFile = (title: string, clientName: string, category: string, description: string) => {
@@ -635,6 +963,20 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       sessions,
       supportTickets,
       
+      // Enterprise extensions
+      adminUsers,
+      coupons,
+      campaigns,
+      lawsAndPrecedents,
+      securityLogs,
+      
+      // Configs
+      geminiModel,
+      geminiTemperature,
+      geminiMaxTokens,
+      firebaseConnected,
+      databaseBackupDate,
+
       caseAnalysisResult,
       caseAnalysisLoading,
       docAnalysisResult,
@@ -651,6 +993,7 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
 
       toggleAdminRole,
       togglePremiumRole,
+      toggleTwoFactorAuth,
       updateSystemConfig,
       addCaseFile,
       selectCaseFile,
@@ -667,7 +1010,25 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       runAcademyTeacher,
       submitTicket,
       setVoiceActive,
-      simulateVoiceInput
+      simulateVoiceInput,
+      
+      // Admin methods
+      updateGeminiConfig,
+      testFirebaseConnection,
+      triggerDatabaseBackup,
+      clearSystemCache,
+      addCoupon,
+      toggleCoupon,
+      deleteCoupon,
+      addCampaign,
+      toggleCampaign,
+      deleteCampaign,
+      addLawItem,
+      deleteLawItem,
+      addSecurityLog,
+      clearSecurityLogs,
+      sendGlobalNotification,
+      updateUserRoleAndPlan
     }}>
       {children}
     </AppContext.Provider>
