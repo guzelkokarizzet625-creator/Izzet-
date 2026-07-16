@@ -1507,43 +1507,43 @@ Rapor Sonu - AL HUKUK AI Enterprise
                           const me = expandedAnalysis?.missingEvidence || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).missingEvidence;
                           return (
                             <div className="space-y-3.5 text-xs text-softGrey">
-                              {me?.eksikBelgeler?.length > 0 && (
+                              {(me?.eksikBelgeler || []).length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Eksik Evraklar:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {me.eksikBelgeler.map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(me?.eksikBelgeler || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {me?.eksikTaniklar?.length > 0 && (
+                              {(me?.eksikTaniklar || []).length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Dinlenmesi Önerilen Tanıklara İlişkin Not:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {me.eksikTaniklar.map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(me?.eksikTaniklar || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {me?.eksikBankaKayitlari?.length > 0 && (
+                              {(me?.eksikBankaKayitlari || []).length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Celp Edilecek Banka Hesap Dökümleri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {me.eksikBankaKayitlari.map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(me?.eksikBankaKayitlari || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {me?.eksikHts?.length > 0 && (
+                              {(me?.eksikHts || []).length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Talep Edilecek HTS / Sinyal Verileri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {me.eksikHts.map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(me?.eksikHts || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {me?.eksikResmiYazismalar?.length > 0 && (
+                              {(me?.eksikResmiYazismalar || []).length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Yazılacak Kurum Müzekkereleri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {me.eksikResmiYazismalar.map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(me?.eksikResmiYazismalar || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
