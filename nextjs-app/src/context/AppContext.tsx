@@ -14,13 +14,15 @@ import {
   doc, 
   setDoc, 
   getDoc,
-  updateDoc
+  updateDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 
 // --- Type Definitions ---
 export interface UserProfile {
   id: number | string;
+  uid?: string;
   name: string;
   email: string;
   isAdmin: boolean;
@@ -32,7 +34,9 @@ export interface UserProfile {
   isTwoFactorEnabled: boolean; // 2FA Status
   remainingQuestions?: number; // Quota tracking
   role?: string;
+  emailVerified?: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CaseFile {
@@ -156,6 +160,7 @@ interface AppState {
   isEmailVerified: boolean;
   authLoading: boolean;
   authError: string | null;
+  toast: { message: string; type: 'success' | 'error' | 'info' | 'warning' } | null;
   caseFiles: CaseFile[];
   selectedCaseFileId: number | null;
   documents: LegalDocument[];
@@ -241,6 +246,7 @@ interface AppContextType extends AppState {
   clearSecurityLogs: () => void;
   sendGlobalNotification: (title: string, text: string) => void;
   updateUserRoleAndPlan: (id: number, role: AdminUser['role'], plan: AdminUser['plan'], active: boolean) => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -395,65 +401,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (docSnap.exists()) {
         const data = docSnap.data();
         profile = {
-          ...data,
-          id: data.id || user.uid,
+          id: user.uid,
           uid: data.uid || user.uid,
-          name: data.name || user.displayName || user.email?.split('@')[0] || "Avukat",
+          name: data.displayName || data.name || user.displayName || user.email?.split('@')[0] || "Avukat",
           email: data.email || user.email || "",
-          isAdmin: data.isAdmin !== undefined ? data.isAdmin : false,
-          isPremium: data.isPremium !== undefined ? data.isPremium : false,
-          remainingQuestions: data.remainingQuestions !== undefined ? data.remainingQuestions : 3,
-          role: data.role || "user",
-          emailVerified: data.emailVerified !== undefined ? data.emailVerified : user.emailVerified,
-          createdAt: data.createdAt || new Date().toISOString(),
-          updatedAt: data.updatedAt || new Date().toISOString()
+          isAdmin: data.role === "admin" || data.isAdmin || isAdminEmail,
+          isPremium: data.premium === true || data.isPremium || isAdminEmail,
+          systemIban: data.systemIban || "TR96 0006 2000 0001 2345 6789 01",
+          premiumPriceMonthly: data.premiumPriceMonthly || "₺199.00",
+          premiumPriceAnnual: data.premiumPriceAnnual || "₺450.00",
+          premiumPriceCorporate: data.premiumPriceCorporate || "₺1,250.00",
+          isTwoFactorEnabled: data.isTwoFactorEnabled || false,
+          remainingQuestions: data.remainingQuestions !== undefined ? data.remainingQuestions : (isAdminEmail ? -1 : 3),
+          role: data.role || (isAdminEmail ? "admin" : "user"),
+          createdAt: data.createdAt ? (typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate().toISOString() : data.createdAt) : new Date().toISOString()
         } as UserProfile;
         
-        // If it's the admin email, force the correct admin values (TASKS Requirement)
-        if (isAdminEmail) {
-          if (profile.role !== "admin" || !profile.isAdmin || !profile.isPremium || profile.remainingQuestions !== -1) {
-            profile.role = "admin";
-            profile.isAdmin = true;
-            profile.isPremium = true;
-            profile.remainingQuestions = -1;
-            needsUpdate = true;
-          }
+        if (isAdminEmail && (profile.role !== "admin" || !profile.isAdmin || !profile.isPremium)) {
+          profile.role = "admin";
+          profile.isAdmin = true;
+          profile.isPremium = true;
+          needsUpdate = true;
         }
         
-        // Check if any required fields are missing to auto-migrate schema
-        if (data.uid === undefined || 
-            data.emailVerified === undefined || 
-            data.updatedAt === undefined ||
-            data.role === undefined ||
-            data.createdAt === undefined) {
+        if (!data.uid || !data.role || data.premium === undefined || !data.createdAt) {
           needsUpdate = true;
         }
         
         if (needsUpdate) {
-          profile.updatedAt = new Date().toISOString();
-          await setDoc(userDocRef, profile, { merge: true });
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email || "",
+            displayName: profile.name,
+            role: profile.role,
+            premium: profile.isPremium,
+            createdAt: data.createdAt || serverTimestamp()
+          }, { merge: true });
         }
       } else {
         // Create new profile automatically if not found
+        const isSpecialEmail = user.email?.toLowerCase() === "guzelkokarizzet625@gmail.com";
+        const displayName = user.displayName || user.email?.split('@')[0] || "Avukat";
+        
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email || "",
+          displayName: displayName,
+          role: isSpecialEmail ? "admin" : "user",
+          premium: isSpecialEmail ? true : false,
+          createdAt: serverTimestamp()
+        });
+
         profile = {
           id: user.uid,
           uid: user.uid,
-          name: user.displayName || user.email?.split('@')[0] || "Avukat",
+          name: displayName,
           email: user.email || "",
-          isAdmin: isAdminEmail ? true : false,
-          isPremium: isAdminEmail ? true : false,
+          isAdmin: isSpecialEmail,
+          isPremium: isSpecialEmail,
           systemIban: "TR96 0006 2000 0001 2345 6789 01",
           premiumPriceMonthly: "₺199.00",
           premiumPriceAnnual: "₺450.00",
           premiumPriceCorporate: "₺1,250.00",
           isTwoFactorEnabled: false,
-          remainingQuestions: isAdminEmail ? -1 : 3,
-          role: isAdminEmail ? "admin" : "user",
-          emailVerified: user.emailVerified,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          remainingQuestions: isSpecialEmail ? -1 : 3,
+          role: isSpecialEmail ? "admin" : "user",
+          createdAt: new Date().toISOString()
         };
-        await setDoc(userDocRef, profile);
       }
     } catch (e) {
       console.warn("Firestore user profile fetch/create failed, using fallback:", e);
@@ -463,8 +477,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         uid: user.uid,
         name: user.displayName || user.email?.split('@')[0] || "Avukat",
         email: user.email || "",
-        isAdmin: isAdminEmail ? true : false,
-        isPremium: isAdminEmail ? true : false,
+        isAdmin: isAdminEmail,
+        isPremium: isAdminEmail,
         systemIban: "TR96 0006 2000 0001 2345 6789 01",
         premiumPriceMonthly: "₺199.00",
         premiumPriceAnnual: "₺450.00",
@@ -472,9 +486,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isTwoFactorEnabled: false,
         remainingQuestions: isAdminEmail ? -1 : 3,
         role: isAdminEmail ? "admin" : "user",
-        emailVerified: user.emailVerified,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: new Date().toISOString()
       };
     }
     return profile;
@@ -534,28 +546,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Automatically send verification email
-      try {
-        await sendEmailVerification(user);
-      } catch (verifErr) {
-        console.warn("Could not send email verification automatically:", verifErr);
-      }
+      // Send verification email
+      await sendEmailVerification(user);
 
-      const profile = await getOrCreateProfile(user);
+      const isSpecialEmail = email.toLowerCase() === "guzelkokarizzet625@gmail.com";
+      const userDocRef = doc(db, "users", user.uid);
       
-      // Override standard placeholder name with explicitly provided registration name
-      profile.name = name;
-      try {
-        await setDoc(doc(db, "users", user.uid), profile, { merge: true });
-      } catch (err) {
-        console.warn("Could not merge custom registration name into profile:", err);
-      }
+      // Create Firestore document with requested fields
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: email,
+        displayName: name,
+        role: isSpecialEmail ? "admin" : "user",
+        premium: isSpecialEmail ? true : false,
+        createdAt: serverTimestamp()
+      });
 
-      setUserProfile(profile);
-      setIsEmailVerified(user.emailVerified);
-      setIsAuthenticated(true);
-      localStorage.setItem('al_user', JSON.stringify(profile));
-      addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu. Kullanıcı: ${email}`, 'INFO');
+      // Registration must redirect to Login, so sign the user out immediately
+      await signOut(auth);
+
+      setIsAuthenticated(false);
+      setIsEmailVerified(false);
+      setUserProfile({
+        id: 0,
+        name: "",
+        email: "",
+        isAdmin: false,
+        isPremium: false,
+        systemIban: "TR96 0006 2000 0001 2345 6789 01",
+        premiumPriceMonthly: "₺199.00",
+        premiumPriceAnnual: "₺450.00",
+        premiumPriceCorporate: "₺1,250.00",
+        isTwoFactorEnabled: false
+      });
+      localStorage.removeItem('al_user');
+
+      addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu ve doğrulama e-postası gönderildi. Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
       return true;
     } catch (e: any) {
@@ -591,14 +617,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isTwoFactorEnabled: false,
         remainingQuestions: isAdminEmail ? -1 : 3,
         role: isAdminEmail ? "admin" : "user",
-        emailVerified: true, // Bypass for local offline users
+        emailVerified: false, // Local simulation triggers verification requirement
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      setUserProfile(profile);
-      setIsEmailVerified(true);
-      setIsAuthenticated(true);
-      addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
+      
+      // For local fallback, we also sign out/require login verification simulation
+      setAuthError("Doğrulama e-postası gönderildi. Lütfen e-postanızı doğrulayıp giriş yapın (Simüle edildi).");
+      setIsAuthenticated(false);
       setAuthLoading(false);
       return true;
     }
@@ -610,8 +636,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      setIsEmailVerified(user.emailVerified);
       
+      // Reject users whose email is not verified
+      if (!user.emailVerified) {
+        await signOut(auth);
+        setAuthError("Lütfen e-posta adresinizi doğrulayın. Doğrulama e-postası gelen kutunuza gönderilmiştir.");
+        setIsAuthenticated(false);
+        setIsEmailVerified(false);
+        setAuthLoading(false);
+        return false;
+      }
+
+      setIsEmailVerified(user.emailVerified);
       const profile = await getOrCreateProfile(user);
       
       setUserProfile(profile);
@@ -763,6 +799,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [campaigns, setCampaigns] = useState<Campaign[]>(defaultCampaigns);
   const [lawsAndPrecedents, setLawsAndPrecedents] = useState<LawDatabaseItem[]>(defaultLawsAndPrecedents);
   const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>(defaultSecurityLogs);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Configuration States
   const [geminiModel, setGeminiModel] = useState("gemini-2.5-flash");
@@ -932,6 +982,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserProfile(prev => {
       const nextVal = !prev.isTwoFactorEnabled;
       addSecurityLog('AUTH_2FA', `İki aşamalı doğrulama (2FA) ${nextVal ? 'etkinleştirildi' : 'devre dışı bırakıldı'}.`, 'INFO');
+      showToast(`İki aşamalı doğrulama (2FA) ${nextVal ? 'etkinleştirildi' : 'devre dışı bırakıldı'}.`, 'success');
       return { ...prev, isTwoFactorEnabled: nextVal };
     });
   };
@@ -944,6 +995,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       premiumPriceAnnual: annual,
       premiumPriceCorporate: corporate
     }));
+    showToast("Abonelik ücretleri ve sistem IBAN adresi başarıyla güncellendi.", "success");
   };
 
   const updateGeminiConfig = (model: string, temp: number, maxTokens: number) => {
@@ -951,6 +1003,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGeminiTemperature(temp);
     setGeminiMaxTokens(maxTokens);
     addSecurityLog('SENSITIVE_ACCESS', `Yapar zekâ parametreleri güncellendi. Model: ${model}, Sıcaklık: ${temp}, Sınır: ${maxTokens}`, 'INFO');
+    showToast("Yapay zekâ parametreleri başarıyla güncellendi.", "success");
   };
 
   const testFirebaseConnection = async () => {
@@ -958,6 +1011,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await new Promise(resolve => setTimeout(resolve, 800));
     setFirebaseConnected(true);
     addSecurityLog('JWT_VERIFY', "Firebase OAuth ve Gerçek Zamanlı DB bütünlük testi başarıyla tamamlandı.", "INFO");
+    showToast("Firebase & Firestore bağlantı testi başarılı!", "success");
     return true;
   };
 
@@ -966,10 +1020,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const formatted = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     setDatabaseBackupDate(formatted);
     addSecurityLog('SENSITIVE_ACCESS', `Bulut veritabanı tam yedekleme ve şifreleme işlemi başarıyla tamamlandı.`, 'WARNING');
+    showToast("Gerçek zamanlı Firestore yedeği başarıyla alındı ve şifrelendi.", "success");
   };
 
   const clearSystemCache = () => {
     addSecurityLog('RATE_LIMIT', "Tüm sistem önbellekleri (Kullanıcı, SEO Sitemaps, Mevzuat arabellekleri) temizlendi.", "INFO");
+    showToast("Sistem önbelleği ve geçici dosyalar başarıyla temizlendi.", "success");
   };
 
   const addCoupon = (code: string, discount: number, expiry: string) => {
@@ -983,14 +1039,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setCoupons(prev => [newCoupon, ...prev]);
     addSecurityLog('SENSITIVE_ACCESS', `Yeni indirim kuponu tanımlandı: ${code.toUpperCase()} (%${discount})`, 'INFO');
+    showToast(`"${code.toUpperCase()}" indirim kuponu başarıyla oluşturuldu.`, "success");
   };
 
   const toggleCoupon = (id: number) => {
     setCoupons(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+    showToast("Kupon aktiflik durumu değiştirildi.", "info");
   };
 
   const deleteCoupon = (id: number) => {
     setCoupons(prev => prev.filter(c => c.id !== id));
+    showToast("İndirim kuponu sistemden kalıcı olarak silindi.", "warning");
   };
 
   const addCampaign = (title: string, description: string, discountCode: string, bannerColor: string) => {
@@ -1004,14 +1063,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setCampaigns(prev => [newCamp, ...prev]);
     addSecurityLog('SENSITIVE_ACCESS', `Yeni kampanya duyurusu oluşturuldu: ${title}`, 'INFO');
+    showToast("Yeni kampanya duyurusu başarıyla yayınlandı.", "success");
   };
 
   const toggleCampaign = (id: number) => {
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+    showToast("Kampanya aktiflik durumu değiştirildi.", "info");
   };
 
   const deleteCampaign = (id: number) => {
     setCampaigns(prev => prev.filter(c => c.id !== id));
+    showToast("Kampanya duyurusu sistemden kaldırıldı.", "warning");
   };
 
   const addLawItem = (title: string, category: LawDatabaseItem['category'], content: string) => {
@@ -1024,10 +1086,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setLawsAndPrecedents(prev => [newItem, ...prev]);
     addSecurityLog('SENSITIVE_ACCESS', `Kanun/Emsal Karar veritabanına yeni madde eklendi: ${title}`, 'INFO');
+    showToast("Yeni mevzuat/emsal karar başarıyla veritabanına eklendi.", "success");
   };
 
   const deleteLawItem = (id: number) => {
     setLawsAndPrecedents(prev => prev.filter(l => l.id !== id));
+    showToast("Mevzuat/Emsal Karar veritabanından kalıcı olarak silindi.", "warning");
   };
 
   const addSecurityLog = (type: SecurityLog['eventType'], message: string, severity: SecurityLog['severity']) => {
@@ -1044,10 +1108,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearSecurityLogs = () => {
     setSecurityLogs([]);
+    showToast("Güvenlik günlükleri ve denetim kayıtları temizlendi.", "warning");
   };
 
   const sendGlobalNotification = (title: string, text: string) => {
     addSecurityLog('SENSITIVE_ACCESS', `Sistem genel duyurusu tetiklendi: "${title}" - "${text}"`, 'WARNING');
+    showToast(`Global duyuru başarıyla gönderildi: "${title}"`, "success");
   };
 
   const updateUserRoleAndPlan = (id: number, role: AdminUser['role'], plan: AdminUser['plan'], active: boolean) => {
@@ -1065,6 +1131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return u;
     }));
     addSecurityLog('SENSITIVE_ACCESS', `Kullanıcı ID: ${id} üzerinde yetki güncellemesi yapıldı. Rol: ${role}, Lisans: ${plan}`, 'WARNING');
+    showToast("Kullanıcı yetki ve plan ayarları başarıyla güncellendi.", "success");
   };
 
   const addCaseFile = (title: string, clientName: string, category: string, description: string) => {
@@ -1425,6 +1492,8 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       isEmailVerified,
       authLoading,
       authError,
+      toast,
+      showToast,
       caseFiles,
       selectedCaseFileId,
       documents,
@@ -1508,6 +1577,49 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       sendGlobalNotification,
       updateUserRoleAndPlan
     }}>
+      {toast && (
+        <div className={`fixed top-5 right-5 z-[9999] max-w-sm w-full bg-midnight border-l-4 ${
+          toast.type === 'success' ? 'border-l-successGreen' : 
+          toast.type === 'error' ? 'border-l-errorRed' : 
+          toast.type === 'warning' ? 'border-l-amber-500' : 'border-l-goldLight'
+        } shadow-2xl p-4 rounded-r-xl border border-slateGrey/40 animate-fade-in flex items-start gap-3`}>
+          <div className="mt-0.5 shrink-0">
+            {toast.type === 'success' && (
+              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === 'error' && (
+              <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === 'warning' && (
+              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            )}
+            {toast.type === 'info' && (
+              <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-bold text-ivory tracking-wide leading-relaxed">
+              {toast.message}
+            </p>
+          </div>
+          <button 
+            onClick={() => setToast(null)}
+            className="text-softGrey hover:text-ivory transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       {children}
     </AppContext.Provider>
   );

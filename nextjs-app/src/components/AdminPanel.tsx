@@ -124,14 +124,12 @@ export default function AdminPanel() {
   const handleSaveAiConfig = () => {
     updateGeminiConfig(selectedAiModel, aiTemp, aiMaxTokens);
     addSecurityLog('SENSITIVE_ACCESS', `Yapay zeka parametreleri güncellendi (Sıcaklık: ${aiTemp}, Sınır: ${aiMaxTokens} token)`, 'INFO');
-    alert("Gemini Yapay Zekâ parametreleri başarıyla güncellendi!");
   };
 
   const handleTestFirebase = async () => {
     setIsFirebaseTesting(true);
     await testFirebaseConnection();
     setIsFirebaseTesting(false);
-    alert("Firebase OAuth ve Realtime Database entegrasyon doğrulaması başarıyla tamamlandı!");
   };
 
   const handleClearCache = () => {
@@ -139,7 +137,6 @@ export default function AdminPanel() {
     setTimeout(() => {
       clearSystemCache();
       setIsCacheClearing(false);
-      alert("Önbellek temizlendi ve optimizasyon yenilendi!");
     }, 600);
   };
 
@@ -184,6 +181,18 @@ export default function AdminPanel() {
   const totalUsersCount = adminUsers.length;
   const activePremiumCount = adminUsers.filter(u => u.plan !== 'STANDARD' && u.active).length;
   const pendingReceiptsCount = pendingReceipts.length;
+
+  if (!userProfile.isAdmin) {
+    return (
+      <div className="p-8 text-center bg-charcoal border border-errorRed/30 rounded-2xl max-w-md mx-auto my-12 space-y-4">
+        <Lock className="w-12 h-12 text-errorRed mx-auto" />
+        <h2 className="text-lg font-bold text-errorRed">Yetkisiz Erişim Teşebbüsü</h2>
+        <p className="text-xs text-softGrey leading-relaxed">
+          Bu alan siber güvenlik kalkanı (Shield Shield) ve role tabanlı erişim kontrolü (RBAC) ile korunmaktadır. Yetkiniz bulunmamaktadır.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -548,7 +557,7 @@ export default function AdminPanel() {
                           {c.active ? 'Aktif' : 'Pasif'}
                         </button>
                         <button
-                          onClick={() => deleteCoupon(c.id)}
+                          onClick={() => { if (window.confirm("Bu indirim kuponunu kalıcı olarak silmek istediğinize emin misiniz?")) deleteCoupon(c.id); }}
                           className="text-errorRed hover:text-red-400 p-1 bg-charcoal border border-slateGrey rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -648,7 +657,7 @@ export default function AdminPanel() {
                           {camp.active ? 'Yayında' : 'Pasif'}
                         </button>
                         <button
-                          onClick={() => deleteCampaign(camp.id)}
+                          onClick={() => { if (window.confirm("Bu kampanya duyurusunu kalıcı olarak silmek istediğinize emin misiniz?")) deleteCampaign(camp.id); }}
                           className="text-errorRed hover:text-red-400 p-1 bg-charcoal border border-slateGrey rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -727,7 +736,7 @@ export default function AdminPanel() {
                 {lawsAndPrecedents.map(law => (
                   <div key={law.id} className="bg-midnight p-4 rounded-xl border border-slateGrey/30 space-y-2 relative">
                     <button
-                      onClick={() => deleteLawItem(law.id)}
+                      onClick={() => { if (window.confirm("Bu mevzuat/emsal karar maddesini kalıcı olarak silmek istediğinize emin misiniz?")) deleteLawItem(law.id); }}
                       className="absolute right-4 top-4 text-errorRed hover:text-red-400 p-1 bg-charcoal border border-slateGrey rounded"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

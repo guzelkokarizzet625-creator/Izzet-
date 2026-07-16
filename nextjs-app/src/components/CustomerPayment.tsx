@@ -35,7 +35,8 @@ export default function CustomerPayment() {
     userProfile, 
     submitPaymentReceipt, 
     paymentReceipts,
-    togglePremiumRole 
+    togglePremiumRole,
+    showToast
   } = useApp();
 
   // Tab State: subscription, plans (checkout), bank, invoices
@@ -225,7 +226,7 @@ export default function CustomerPayment() {
     setDownloadingInvoice(true);
     setTimeout(() => {
       setDownloadingInvoice(false);
-      alert("Faturanız PDF formatında başarıyla indirildi!");
+      showToast("Faturanız PDF formatında başarıyla indirildi!", "success");
     }, 1200);
   };
 

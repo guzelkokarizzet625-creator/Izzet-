@@ -117,7 +117,10 @@ export default function AuthPortal({ initialMode = 'login', onClose, isModal = f
     setLoading(false);
 
     if (success) {
-      setSuccessMessage('Hesabınız başarıyla oluşturuldu! Ofis paneline yönlendiriliyorsunuz.');
+      setSuccessMessage('Doğrulama e-postası gönderildi. Lütfen gelen kutunuzu kontrol edin ve ardından giriş yapın.');
+      setTimeout(() => {
+        handleModeChange('login');
+      }, 3500);
     }
   };
 
