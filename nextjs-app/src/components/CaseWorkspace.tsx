@@ -1505,45 +1505,51 @@ Rapor Sonu - AL HUKUK AI Enterprise
                         
                         {(() => {
                           const me = expandedAnalysis?.missingEvidence || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).missingEvidence;
+                          const eksikBelgeler = Array.isArray(me?.eksikBelgeler) ? me.eksikBelgeler : [];
+                          const eksikTaniklar = Array.isArray(me?.eksikTaniklar) ? me.eksikTaniklar : [];
+                          const eksikBankaKayitlari = Array.isArray(me?.eksikBankaKayitlari) ? me.eksikBankaKayitlari : [];
+                          const eksikHts = Array.isArray(me?.eksikHts) ? me.eksikHts : [];
+                          const eksikResmiYazismalar = Array.isArray(me?.eksikResmiYazismalar) ? me.eksikResmiYazismalar : [];
+
                           return (
                             <div className="space-y-3.5 text-xs text-softGrey">
-                              {(me?.eksikBelgeler || []).length > 0 && (
+                              {eksikBelgeler.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Eksik Evraklar:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {(me?.eksikBelgeler || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {eksikBelgeler.map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {(me?.eksikTaniklar || []).length > 0 && (
+                              {eksikTaniklar.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Dinlenmesi Önerilen Tanıklara İlişkin Not:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {(me?.eksikTaniklar || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {eksikTaniklar.map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {(me?.eksikBankaKayitlari || []).length > 0 && (
+                              {eksikBankaKayitlari.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Celp Edilecek Banka Hesap Dökümleri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {(me?.eksikBankaKayitlari || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {eksikBankaKayitlari.map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {(me?.eksikHts || []).length > 0 && (
+                              {eksikHts.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Talep Edilecek HTS / Sinyal Verileri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {(me?.eksikHts || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {eksikHts.map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {(me?.eksikResmiYazismalar || []).length > 0 && (
+                              {eksikResmiYazismalar.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Yazılacak Kurum Müzekkereleri:</strong>
                                   <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                                    {(me?.eksikResmiYazismalar || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {eksikResmiYazismalar.map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
@@ -1686,13 +1692,13 @@ Rapor Sonu - AL HUKUK AI Enterprise
                       <div className="bg-gradient-to-r from-goldDark/10 to-amberAccent/5 p-4 rounded-xl border border-goldDark/25 space-y-2">
                         <strong className="text-[11px] font-black text-goldLight uppercase tracking-widest block">✓ KONSEY ORTAK KONSENSÜS KARARI</strong>
                         <p className="text-xs text-softGrey leading-relaxed">
-                          {expandedAnalysis?.aiCouncil?.ortakKarar || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.ortakKarar}
+                          {expandedAnalysis?.aiCouncil?.ortakKarar || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil?.ortakKarar}
                         </p>
-                        {((expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.fikirAyriliklari || []).length > 0) && (
+                        {((expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil?.fikirAyriliklari || []).length > 0) && (
                           <div className="border-t border-slateGrey/10 pt-2 mt-2 space-y-1">
                             <span className="text-[9px] font-black text-warningOrange uppercase block">Muhalefet Şerhleri / Fikir Ayrılıkları:</span>
                             <ul className="list-disc pl-4 text-[10px] text-softGrey/90 space-y-0.5">
-                              {(expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.fikirAyriliklari || []).map((diff, idx) => (
+                              {(expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil?.fikirAyriliklari || []).map((diff, idx) => (
                                 <li key={idx}>{diff}</li>
                               ))}
                             </ul>
@@ -1702,7 +1708,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
 
                       {/* Grid of opinions */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
-                        {(expandedAnalysis?.aiCouncil?.opinions || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.opinions || []).map((op, idx) => {
+                        {(expandedAnalysis?.aiCouncil?.opinions || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil?.opinions || []).map((op, idx) => {
                           const getVoteBadge = (vote: string) => {
                             if (vote === 'KABUL') return 'text-emerald-400 bg-emerald-950/20 border-emerald-900/40';
                             if (vote === 'REDD') return 'text-rose-400 bg-rose-950/20 border-rose-900/40';
