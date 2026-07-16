@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is the superadmin
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == "guzelkokarizzet625@gmail.com";
+    }
+
+    // Helper function to check if the user is authenticated and accessing their own data
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Users can read their own profiles, or the superadmin can read any profile
+      allow read: if isOwner(userId) || isSuperAdmin();
+      
+      // Allow creation of profiles
+      allow create: if request.auth != null && request.auth.uid == userId && (
+        // Standard user properties
+        (!request.resource.data.keys().hasAll(['isAdmin']) || request.resource.data.isAdmin == false) &&
+        (!request.resource.data.keys().hasAll(['role']) || request.resource.data.role == "user")
+        // Or if they are the superadmin email
+        || request.auth.token.email == "guzelkokarizzet625@gmail.com"
+      );
+      
+      // Allow updates to profiles
+      allow update: if (isOwner(userId) && (
+        // Prevent privilege escalation: user cannot change isAdmin or role fields
+        (
+          request.resource.data.isAdmin == resource.data.isAdmin &&
+          request.resource.data.role == resource.data.role
+        ) ||
+        // Unless they are the superadmin email
+        request.auth.token.email == "guzelkokarizzet625@gmail.com"
+      )) || isSuperAdmin();
+      
+      // Only the superadmin can delete profiles
+      allow delete: if isSuperAdmin();
+    }
+    
+    // Default rule for other collections (e.g., cases, documents, logs, chats)
+    match /{document=**} {
+      allow read, write: if request.auth != null || isSuperAdmin();
+    }
+  }
+}

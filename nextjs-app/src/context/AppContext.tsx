@@ -382,6 +382,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Core Data States
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUser);
 
+  // Helper: Get or Create user profile with schema migration & superadmin checks
+  const getOrCreateProfile = async (user: FirebaseUser): Promise<UserProfile> => {
+    const userDocRef = doc(db, "users", user.uid);
+    let profile: UserProfile;
+    let needsUpdate = false;
+    
+    const isAdminEmail = user.email?.toLowerCase() === "guzelkokarizzet625@gmail.com";
+    
+    try {
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        profile = {
+          ...data,
+          id: data.id || user.uid,
+          uid: data.uid || user.uid,
+          name: data.name || user.displayName || user.email?.split('@')[0] || "Avukat",
+          email: data.email || user.email || "",
+          isAdmin: data.isAdmin !== undefined ? data.isAdmin : false,
+          isPremium: data.isPremium !== undefined ? data.isPremium : false,
+          remainingQuestions: data.remainingQuestions !== undefined ? data.remainingQuestions : 3,
+          role: data.role || "user",
+          emailVerified: data.emailVerified !== undefined ? data.emailVerified : user.emailVerified,
+          createdAt: data.createdAt || new Date().toISOString(),
+          updatedAt: data.updatedAt || new Date().toISOString()
+        } as UserProfile;
+        
+        // If it's the admin email, force the correct admin values (TASKS Requirement)
+        if (isAdminEmail) {
+          if (profile.role !== "admin" || !profile.isAdmin || !profile.isPremium || profile.remainingQuestions !== -1) {
+            profile.role = "admin";
+            profile.isAdmin = true;
+            profile.isPremium = true;
+            profile.remainingQuestions = -1;
+            needsUpdate = true;
+          }
+        }
+        
+        // Check if any required fields are missing to auto-migrate schema
+        if (data.uid === undefined || 
+            data.emailVerified === undefined || 
+            data.updatedAt === undefined ||
+            data.role === undefined ||
+            data.createdAt === undefined) {
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          profile.updatedAt = new Date().toISOString();
+          await setDoc(userDocRef, profile, { merge: true });
+        }
+      } else {
+        // Create new profile automatically if not found
+        profile = {
+          id: user.uid,
+          uid: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || "Avukat",
+          email: user.email || "",
+          isAdmin: isAdminEmail ? true : false,
+          isPremium: isAdminEmail ? true : false,
+          systemIban: "TR96 0006 2000 0001 2345 6789 01",
+          premiumPriceMonthly: "₺199.00",
+          premiumPriceAnnual: "₺450.00",
+          premiumPriceCorporate: "₺1,250.00",
+          isTwoFactorEnabled: false,
+          remainingQuestions: isAdminEmail ? -1 : 3,
+          role: isAdminEmail ? "admin" : "user",
+          emailVerified: user.emailVerified,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        await setDoc(userDocRef, profile);
+      }
+    } catch (e) {
+      console.warn("Firestore user profile fetch/create failed, using fallback:", e);
+      // Fallback profile
+      profile = {
+        id: user.uid,
+        uid: user.uid,
+        name: user.displayName || user.email?.split('@')[0] || "Avukat",
+        email: user.email || "",
+        isAdmin: isAdminEmail ? true : false,
+        isPremium: isAdminEmail ? true : false,
+        systemIban: "TR96 0006 2000 0001 2345 6789 01",
+        premiumPriceMonthly: "₺199.00",
+        premiumPriceAnnual: "₺450.00",
+        premiumPriceCorporate: "₺1,250.00",
+        isTwoFactorEnabled: false,
+        remainingQuestions: isAdminEmail ? -1 : 3,
+        role: isAdminEmail ? "admin" : "user",
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    }
+    return profile;
+  };
+
   // Auth Observer
   useEffect(() => {
     let isMounted = true;
@@ -390,42 +488,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthLoading(true);
       if (user) {
         setIsEmailVerified(user.emailVerified);
-        try {
-          const docSnap = await getDoc(doc(db, "users", user.uid));
-          if (docSnap.exists() && isMounted) {
-            setUserProfile(docSnap.data() as UserProfile);
-            setIsAuthenticated(true);
-          } else if (isMounted) {
-            // Firestore profile missing, reconstruct and set it
-            const profile: UserProfile = {
-              id: user.uid,
-              name: user.displayName || user.email?.split('@')[0] || "Avukat",
-              email: user.email || "",
-              isAdmin: false,
-              isPremium: false,
-              systemIban: "TR96 0006 2000 0001 2345 6789 01",
-              premiumPriceMonthly: "₺199.00",
-              premiumPriceAnnual: "₺450.00",
-              premiumPriceCorporate: "₺1,250.00",
-              isTwoFactorEnabled: false,
-              remainingQuestions: 3,
-              role: "user",
-              createdAt: new Date().toISOString()
-            };
-            try {
-              await setDoc(doc(db, "users", user.uid), profile);
-            } catch (fsErr) {
-              console.warn("Could not save profile to firestore:", fsErr);
-            }
-            setUserProfile(profile);
-            setIsAuthenticated(true);
-          }
-        } catch (e) {
-          console.error("Error fetching firestore profile:", e);
-          // offline/fallback mode
-          if (isMounted) {
-            setIsAuthenticated(true);
-          }
+        const profile = await getOrCreateProfile(user);
+        if (isMounted) {
+          setUserProfile(profile);
+          setIsAuthenticated(true);
+          localStorage.setItem('al_user', JSON.stringify(profile));
         }
       } else if (isMounted) {
         setIsEmailVerified(false);
@@ -474,29 +541,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn("Could not send email verification automatically:", verifErr);
       }
 
-      const initialProfile: UserProfile = {
-        id: user.uid,
-        name: name,
-        email: email,
-        isAdmin: false,
-        isPremium: false,
-        systemIban: "TR96 0006 2000 0001 2345 6789 01",
-        premiumPriceMonthly: "₺199.00",
-        premiumPriceAnnual: "₺450.00",
-        premiumPriceCorporate: "₺1,250.00",
-        isTwoFactorEnabled: false,
-        remainingQuestions: 3,
-        role: "user",
-        createdAt: new Date().toISOString()
-      };
+      const profile = await getOrCreateProfile(user);
+      
+      // Override standard placeholder name with explicitly provided registration name
+      profile.name = name;
       try {
-        await setDoc(doc(db, "users", user.uid), initialProfile);
-      } catch (fsErr) {
-        console.warn("Could not write initial profile to firestore:", fsErr);
+        await setDoc(doc(db, "users", user.uid), profile, { merge: true });
+      } catch (err) {
+        console.warn("Could not merge custom registration name into profile:", err);
       }
-      setUserProfile(initialProfile);
+
+      setUserProfile(profile);
       setIsEmailVerified(user.emailVerified);
       setIsAuthenticated(true);
+      localStorage.setItem('al_user', JSON.stringify(profile));
       addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu. Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
       return true;
@@ -518,23 +576,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localUsers.push(newLocalUser);
       localStorage.setItem('al_users_db', JSON.stringify(localUsers));
 
+      const isAdminEmail = email.toLowerCase() === "guzelkokarizzet625@gmail.com";
       const profile: UserProfile = {
         id: newUid,
+        uid: newUid,
         name: name,
         email: email,
-        isAdmin: false,
-        isPremium: false,
+        isAdmin: isAdminEmail ? true : false,
+        isPremium: isAdminEmail ? true : false,
         systemIban: "TR96 0006 2000 0001 2345 6789 01",
         premiumPriceMonthly: "₺199.00",
         premiumPriceAnnual: "₺450.00",
         premiumPriceCorporate: "₺1,250.00",
         isTwoFactorEnabled: false,
-        remainingQuestions: 3,
-        role: "user",
-        createdAt: new Date().toISOString()
+        remainingQuestions: isAdminEmail ? -1 : 3,
+        role: isAdminEmail ? "admin" : "user",
+        emailVerified: true, // Bypass for local offline users
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       setUserProfile(profile);
-      setIsEmailVerified(true); // Bypass for local offline users
+      setIsEmailVerified(true);
       setIsAuthenticated(true);
       addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
@@ -549,49 +611,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       setIsEmailVerified(user.emailVerified);
-      let profile: UserProfile;
-      try {
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) {
-          profile = docSnap.data() as UserProfile;
-        } else {
-          profile = {
-            id: user.uid,
-            name: user.displayName || email.split('@')[0],
-            email: email,
-            isAdmin: false,
-            isPremium: false,
-            systemIban: "TR96 0006 2000 0001 2345 6789 01",
-            premiumPriceMonthly: "₺199.00",
-            premiumPriceAnnual: "₺450.00",
-            premiumPriceCorporate: "₺1,250.00",
-            isTwoFactorEnabled: false,
-            remainingQuestions: 3,
-            role: "user",
-            createdAt: new Date().toISOString()
-          };
-          await setDoc(doc(db, "users", user.uid), profile);
-        }
-      } catch (e) {
-        console.warn("Firestore profile fetch failed during login:", e);
-        profile = {
-          id: user.uid,
-          name: user.displayName || email.split('@')[0],
-          email: email,
-          isAdmin: false,
-          isPremium: false,
-          systemIban: "TR96 0006 2000 0001 2345 6789 01",
-          premiumPriceMonthly: "₺199.00",
-          premiumPriceAnnual: "₺450.00",
-          premiumPriceCorporate: "₺1,250.00",
-          isTwoFactorEnabled: false,
-          remainingQuestions: 3,
-          role: "user",
-          createdAt: new Date().toISOString()
-        };
-      }
+      
+      const profile = await getOrCreateProfile(user);
+      
       setUserProfile(profile);
       setIsAuthenticated(true);
+      localStorage.setItem('al_user', JSON.stringify(profile));
       addSecurityLog('JWT_VERIFY', `Oturum başarıyla açıldı. Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
       return true;
@@ -602,23 +627,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const matchedUser = localUsers.find((u: any) => u.email === email && u.password === password);
       
       if (matchedUser) {
+        const isAdminEmail = email.toLowerCase() === "guzelkokarizzet625@gmail.com";
         const profile: UserProfile = {
           id: matchedUser.uid,
+          uid: matchedUser.uid,
           name: matchedUser.name,
           email: matchedUser.email,
-          isAdmin: matchedUser.isAdmin || false,
-          isPremium: matchedUser.isPremium || false,
+          isAdmin: isAdminEmail ? true : (matchedUser.isAdmin || false),
+          isPremium: isAdminEmail ? true : (matchedUser.isPremium || false),
           systemIban: "TR96 0006 2000 0001 2345 6789 01",
           premiumPriceMonthly: "₺199.00",
           premiumPriceAnnual: "₺450.00",
           premiumPriceCorporate: "₺1,250.00",
           isTwoFactorEnabled: matchedUser.isTwoFactorEnabled || false,
-          remainingQuestions: matchedUser.remainingQuestions || 3,
-          role: matchedUser.role || "user",
-          createdAt: matchedUser.createdAt || new Date().toISOString()
+          remainingQuestions: isAdminEmail ? -1 : (matchedUser.remainingQuestions || 3),
+          role: isAdminEmail ? "admin" : (matchedUser.role || "user"),
+          emailVerified: true, // Bypass for local offline users
+          createdAt: matchedUser.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         };
         setUserProfile(profile);
-        setIsEmailVerified(true); // Bypass for local offline users
+        setIsEmailVerified(true);
         setIsAuthenticated(true);
         addSecurityLog('JWT_VERIFY', `Oturum başarıyla açıldı (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
         setAuthLoading(false);
@@ -660,15 +689,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const sendVerificationEmail = async (): Promise<boolean> => {
+    setAuthLoading(true);
+    setAuthError(null);
     if (auth.currentUser) {
       try {
         await sendEmailVerification(auth.currentUser);
+        setAuthLoading(false);
         return true;
-      } catch (e) {
+      } catch (e: any) {
         console.error("sendEmailVerification failed:", e);
+        const trMessage = translateFirebaseError(e.code || e.message);
+        setAuthError(trMessage || "Doğrulama e-postası gönderilirken bir hata oluştu.");
+        setAuthLoading(false);
         return false;
       }
     }
+    setAuthError("Doğrulama göndermek için önce giriş yapmalısınız.");
+    setAuthLoading(false);
     return false;
   };
 

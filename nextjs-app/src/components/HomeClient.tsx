@@ -292,7 +292,13 @@ export default function HomeClient() {
       case 'settings':
         return <Settings />;
       case 'admin':
-        return <AdminPanel />;
+        return userProfile.isAdmin ? (
+          <AdminPanel />
+        ) : (
+          <div className="flex-1 p-6 sm:p-8 flex items-center justify-center bg-midnight text-red-400 font-bold">
+            Yetkisiz Erişim. Bu panel yalnızca yöneticilere özeldir.
+          </div>
+        );
       case 'simulator':
         return <StandaloneSimulator />;
       default:
