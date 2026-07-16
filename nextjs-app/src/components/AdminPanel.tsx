@@ -448,6 +448,7 @@ export default function AdminPanel() {
                 {pendingRequests.map(req => {
                   const displayPkg = req.packageId === 'starter' ? 'Aylık Standart' : req.packageId === 'popular' ? 'Yıllık Profesyonel' : 'Kurumsal Enterprise';
                   const pkgBadgeColor = req.packageId === 'starter' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : req.packageId === 'popular' ? 'bg-goldDark/15 text-goldLight border border-goldDark/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+                  const [datePart, timePart] = (req.createdAt || '').split(' ');
                   
                   return (
                     <div key={req.id} className="bg-midnight p-5 rounded-xl border border-slateGrey/50 space-y-4 hover:border-slateGrey transition-all">
@@ -465,6 +466,7 @@ export default function AdminPanel() {
                           <div className="text-[10px] text-softGrey mt-1.5 space-y-0.5">
                             <p>E-Posta: <strong className="text-ivory">{req.email}</strong> | Tel: <strong className="text-ivory">{req.phone}</strong></p>
                             <p>Gönderen IBAN: <strong className="text-ivory font-mono">{req.iban}</strong></p>
+                            <p>Tarih: <strong className="text-ivory">{datePart || req.createdAt}</strong> | Saat: <strong className="text-goldLight">{timePart || '00:00'}</strong></p>
                             <p className="flex items-center gap-2">Sistem IP Adresi: <span className="font-mono bg-charcoal/50 px-1 py-0.2 rounded text-[9px]">{req.ipAddress}</span></p>
                           </div>
                         </div>

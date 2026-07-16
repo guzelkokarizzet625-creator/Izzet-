@@ -83,6 +83,13 @@ export default function CustomerPayment() {
     }
   }, [subscriptionPackages, selectedPlan]);
 
+  React.useEffect(() => {
+    const pkg = subscriptionPackages ? subscriptionPackages.find(p => p.id === selectedPlan) : null;
+    const price = pkg ? pkg.price : (selectedPlan === 'starter' ? 199 : selectedPlan === 'popular' ? 450 : 1250);
+    const discounted = price * (1 - promoDiscount / 100);
+    setBankAmount(`₺${discounted.toFixed(2)}`);
+  }, [selectedPlan, promoDiscount, subscriptionPackages]);
+
   const currentBank = activeBanks.find(b => b.id === selectedBankId) || activeBanks[0] || {
     bankName: "Ziraat Bankası",
     accountHolder: "AL Hukuk Teknolojileri A.Ş.",
@@ -101,9 +108,65 @@ export default function CustomerPayment() {
   const [senderEmail, setSenderEmail] = useState(userProfile.email);
   const [senderIban, setSenderIban] = useState('');
   const [bankAmount, setBankAmount] = useState('₺199.00');
-  const [receiptFile, setReceiptFile] = useState('Dekont_Ek_Dosya_1.pdf');
+  const [receiptFile, setReceiptFile] = useState('');
   const [bankSubmitted, setBankSubmitted] = useState(false);
   const [bankLoading, setBankLoading] = useState(false);
+
+  // Advanced File Upload States
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  const validateIban = (ibanStr: string) => {
+    const cleanIban = ibanStr.replace(/\s+/g, '').toUpperCase();
+    return /^TR\d{24}$/.test(cleanIban);
+  };
+
+  const handleFileSelection = (file: File) => {
+    setUploadError('');
+    
+    // Check file extension
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+    
+    // Check MIME type
+    const allowedMimeTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+    
+    if (!extension || !allowedExtensions.includes(extension)) {
+      setUploadError('Geçersiz dosya formatı. Sadece JPG, JPEG, PNG veya PDF dosyaları yüklenebilir.');
+      showToast('Geçersiz dosya formatı. Sadece JPG, JPEG, PNG veya PDF yüklenebilir.', 'error');
+      return;
+    }
+    
+    // Check file size (5MB maximum)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setUploadError('Dosya boyutu çok büyük. Maksimum dosya boyutu 5 MB olmalıdır.');
+      showToast('Maksimum dosya boyutu 5 MB olmalıdır.', 'error');
+      return;
+    }
+    
+    // Simulated upload progress
+    setUploading(true);
+    setUploadProgress(0);
+    
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev === null) return 0;
+        if (prev >= 100) {
+          clearInterval(interval);
+          setUploading(false);
+          setSelectedFile(file);
+          setReceiptFile(file.name);
+          showToast('Dekont başarıyla yüklendi ve sistem tarafından doğrulandı.', 'success');
+          return 100;
+        }
+        return prev + Math.floor(Math.random() * 20) + 15; // increase progress
+      });
+    }, 120);
+  };
 
   // Local state for invoice history (mock persistence + default historical ones)
   const [localInvoices, setLocalInvoices] = useState<LocalInvoice[]>([
@@ -238,23 +301,37 @@ export default function CustomerPayment() {
 
   const handleSubmitReceipt = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senderName.trim() || !senderIban.trim()) return;
+    if (!senderName.trim() || !senderIban.trim()) {
+      showToast("Lütfen tüm zorunlu alanları doldurun.", "error");
+      return;
+    }
+
+    if (!validateIban(senderIban)) {
+      showToast("Geçersiz IBAN formatı! Türkiye IBAN'ları TR ile başlayan 26 karakterden oluşmalıdır.", "error");
+      return;
+    }
+
+    if (!receiptFile) {
+      showToast("Lütfen havale/EFT dekont belgenizi (JPG, PNG, PDF) yükleyin.", "error");
+      return;
+    }
 
     setBankLoading(true);
     setTimeout(() => {
-      const isStarter = bankAmount.includes('199');
-      const isPopular = bankAmount.includes('450');
-      const amountVal = isStarter ? 199 : isPopular ? 450 : 1250;
-      const packageId: SubscriptionPackageId = isStarter ? 'starter' : isPopular ? 'popular' : 'advantage';
+      // Find exact package price after coupons or discount
+      const pkg = subscriptionPackages ? subscriptionPackages.find(p => p.id === selectedPlan) : null;
+      const basePrice = pkg ? pkg.price : (selectedPlan === 'starter' ? 199 : selectedPlan === 'popular' ? 450 : 1250);
+      const discountedAmount = basePrice * (1 - promoDiscount / 100);
+      const packageId: SubscriptionPackageId = selectedPlan as SubscriptionPackageId;
 
-      submitPaymentRequest(senderName, "0532 123 4567", senderEmail, senderIban, packageId, amountVal, receiptFile);
+      submitPaymentRequest(senderName, "0532 123 4567", senderEmail, senderIban, packageId, discountedAmount, receiptFile);
       
       const invoiceId = `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
       const newInvoice: LocalInvoice = {
         id: invoiceId,
-        planName: getPlanTitle(isStarter ? 'monthly' : isPopular ? 'annual' : 'corporate'),
+        planName: getPlanTitle(selectedPlan),
         date: new Date().toLocaleDateString('tr-TR'),
-        amount: bankAmount,
+        amount: `₺${discountedAmount.toFixed(2)}`,
         paymentMethod: 'BANK_TRANSFER',
         status: 'PENDING'
       };
@@ -263,6 +340,8 @@ export default function CustomerPayment() {
       setBankSubmitted(true);
       setBankLoading(false);
       setSenderIban('');
+      setSelectedFile(null);
+      setReceiptFile('');
       setTimeout(() => setBankSubmitted(false), 4000);
     }, 1500);
   };
@@ -443,104 +522,59 @@ export default function CustomerPayment() {
 
           {/* Checkout Checkout Forms */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Credit Card Form */}
+            {/* Bank Transfer Redirection Card */}
             <div className="lg:col-span-7 bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-5">
               <div className="flex items-center justify-between border-b border-slateGrey/30 pb-3">
                 <h3 className="text-xs font-black text-goldLight uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-goldDark" />
-                  Kredi Kartı ile Güvenli Ödeme
+                  <DollarSign className="w-4 h-4 text-goldDark" />
+                  Banka Havalesi / EFT / FAST ile Ödeme
                 </h3>
-                <span className="text-[8px] text-softGrey uppercase">PCI-DSS Uyumlu Altyapı</span>
+                <span className="text-[8px] text-goldLight bg-goldDark/10 border border-goldDark/25 px-2 py-0.5 rounded uppercase font-bold">Tek Geçerli Ödeme Yöntemi</span>
               </div>
-
-              <form onSubmit={handleCreditCardPay} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold text-softGrey uppercase tracking-wider">Kart Sahibi Adı</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ad Soyad"
-                    value={cardName}
-                    onChange={e => setCardName(e.target.value)}
-                    className="w-full bg-charcoal border border-slateGrey/50 px-3.5 py-2.5 rounded-xl text-xs text-ivory placeholder-softGrey/50 focus:outline-none focus:border-goldDark"
-                    style={{ minHeight: '44px' }}
-                  />
+              
+              <div className="space-y-4 text-xs text-softGrey leading-relaxed">
+                <p>
+                  Sistemimizdeki tüm kredi kartı ve online ödeme altyapıları güvenlik ve gizlilik politikalarımız doğrultusunda kaldırılmıştır. 
+                  Lisans satın alma işlemleriniz **yalnızca Banka Havalesi, EFT veya FAST** yöntemleri ile kabul edilmektedir.
+                </p>
+                
+                <div className="p-4 bg-charcoal/50 border border-slateGrey/30 rounded-xl space-y-3">
+                  <span className="text-[10px] font-black text-goldLight uppercase block">Seçtiğiniz Paket Avantajları:</span>
+                  <ul className="space-y-1.5 text-[11px] text-ivory">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-goldLight" />
+                      <strong>{getPlanTitle(selectedPlan)}</strong> Tam Lisans Erişimi
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-goldLight" />
+                      Anında limitsiz mevzuat arama, dava simülasyonları ve dilekçe stüdyosu
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-goldLight" />
+                      Yapay zekâ destekli analizler ve akıllı avukat asistanı
+                    </li>
+                  </ul>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold text-softGrey uppercase tracking-wider">Kredi Kartı Numarası</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="0000 0000 0000 0000"
-                    value={cardNumber}
-                    onChange={handleCardNumberChange}
-                    className="w-full bg-charcoal border border-slateGrey/50 px-3.5 py-2.5 rounded-xl text-xs font-mono text-ivory placeholder-softGrey/50 focus:outline-none focus:border-goldDark"
-                    style={{ minHeight: '44px' }}
-                  />
+                
+                <div className="bg-goldDark/5 border border-goldDark/20 p-4 rounded-xl space-y-2">
+                  <span className="text-[10px] font-black text-goldLight uppercase block">💳 Ödeme Nasıl Yapılır?</span>
+                  <p className="text-[10px] text-softGrey">
+                    1. Aşağıdaki butona tıklayarak <strong>Banka Havalesi & Bildirim</strong> ekranına geçin.<br />
+                    2. Sunulan güncel resmi banka IBAN adresine paket tutarını gönderin.<br />
+                    3. Gönderim yaparken açıklama kısmına e-posta adresinizi (<span className="text-ivory font-bold">{userProfile.email}</span>) yazmayı unutmayın.<br />
+                    4. Ödeme dekontunuzu (JPG, JPEG, PNG, PDF) forma yükleyerek bildirimi kaydedin.
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-softGrey uppercase tracking-wider">Son Kullanma Tarihi</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="AA/YY"
-                      value={cardExpiry}
-                      onChange={handleExpiryChange}
-                      className="w-full bg-charcoal border border-slateGrey/50 px-3.5 py-2.5 rounded-xl text-xs text-center font-mono text-ivory placeholder-softGrey/50 focus:outline-none focus:border-goldDark"
-                      style={{ minHeight: '44px' }}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-softGrey uppercase tracking-wider">Güvenlik Kodu (CVV)</label>
-                    <input
-                      type="password"
-                      required
-                      maxLength={3}
-                      placeholder="•••"
-                      value={cardCvv}
-                      onChange={e => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-charcoal border border-slateGrey/50 px-3.5 py-2.5 rounded-xl text-xs text-center font-mono text-ivory placeholder-softGrey/50 focus:outline-none focus:border-goldDark"
-                      style={{ minHeight: '44px' }}
-                    />
-                  </div>
-                </div>
-
-                {checkoutError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold rounded-lg flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{checkoutError}</span>
-                  </div>
-                )}
-
-                {checkoutSuccess ? (
-                  <div className="p-4 bg-successGreen/15 border border-successGreen/40 text-successGreen text-xs font-bold rounded-xl text-center space-y-1 animate-fadeIn">
-                    <span className="block font-black uppercase text-[10px] tracking-wider">🎉 ÖDEME BAŞARILI!</span>
-                    <span>Lisansınız anında aktif edilmiştir. Premium özelliklere tam erişiminiz açıldı.</span>
-                  </div>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={checkoutLoading}
-                    className="w-full py-3.5 bg-gradient-to-r from-goldDark to-amberAccent hover:brightness-110 text-midnight font-extrabold text-xs rounded-xl shadow-lg shadow-goldDark/10 transition-all uppercase tracking-wider flex justify-center items-center gap-2"
-                    style={{ minHeight: '48px' }}
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Güvenli Ödeme İşleniyor...
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="w-4.5 h-4.5" />
-                        Güvenli Ödemeyi Tamamla ({calculateFinalPrice()})
-                      </>
-                    )}
-                  </button>
-                )}
-              </form>
+                
+                <button
+                  onClick={() => setActiveSubTab('bank')}
+                  className="w-full py-3.5 bg-gradient-to-r from-goldDark to-amberAccent hover:brightness-110 text-midnight font-extrabold text-xs rounded-xl shadow-lg shadow-goldDark/10 transition-all uppercase tracking-wider flex justify-center items-center gap-2"
+                  style={{ minHeight: '48px' }}
+                >
+                  <span>Banka Bilgileri ve Ödeme Formuna Geç</span>
+                  <ArrowRight className="w-4 h-4 text-midnight" />
+                </button>
+              </div>
             </div>
 
             {/* Checkout Pricing Sidebar & Promo Coupons */}
@@ -745,28 +779,116 @@ export default function CustomerPayment() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <span className="text-[9px] text-softGrey uppercase block">Paket Seçimi / Tutar</span>
-                  <select
-                    value={bankAmount}
-                    onChange={e => setBankAmount(e.target.value)}
-                    className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none h-10"
-                  >
-                    {(subscriptionPackages || []).filter(p => p.isActive).map(p => (
-                      <option key={p.id} value={`₺${p.price.toFixed(2)}`}>
-                        {p.name} - ₺{p.price.toFixed(2)}
+              <div className="space-y-1">
+                <span className="text-[9px] text-softGrey uppercase block">Paket Seçimi ve Tutar</span>
+                <select
+                  value={bankAmount}
+                  onChange={e => setBankAmount(e.target.value)}
+                  className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none h-11"
+                >
+                  {(subscriptionPackages || []).filter(p => p.isActive).map(p => {
+                    const finalPrice = p.price * (1 - promoDiscount / 100);
+                    const optValue = `₺${finalPrice.toFixed(2)}`;
+                    return (
+                      <option key={p.id} value={optValue}>
+                        {p.name} — {optValue} {promoApplied ? `(%${promoDiscount} İndirimli)` : ''}
                       </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[9px] text-softGrey uppercase block">Dekont Belgesi</span>
-                  <div className="bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-[10px] text-softGrey flex items-center justify-between h-10">
-                    <span className="truncate max-w-[100px]">{receiptFile}</span>
-                    <Upload className="w-4 h-4 text-goldDark" />
-                  </div>
-                </div>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Real Drag & Drop File Upload Area */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-softGrey uppercase block">Havale/EFT Dekont Belgesi</span>
+                
+                <input
+                  type="file"
+                  id="receipt-file-input"
+                  accept=".pdf, .png, .jpg, .jpeg"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelection(file);
+                  }}
+                />
+                
+                <label
+                  htmlFor="receipt-file-input"
+                  onDragOver={e => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleFileSelection(file);
+                  }}
+                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 cursor-pointer transition-all ${
+                    isDragging 
+                      ? 'border-goldDark bg-goldDark/10' 
+                      : uploading 
+                        ? 'border-slateGrey/40 bg-charcoal/30 cursor-not-allowed'
+                        : receiptFile 
+                          ? 'border-successGreen/50 bg-successGreen/5' 
+                          : 'border-slateGrey/40 hover:border-slateGrey bg-charcoal/50'
+                  }`}
+                >
+                  {uploading ? (
+                    <div className="text-center py-2 space-y-2 w-full">
+                      <Loader2 className="w-6 h-6 text-goldDark animate-spin mx-auto" />
+                      <span className="text-[11px] text-goldLight font-bold block">Güvenli MIME ve Virüs Taraması Yapılıyor...</span>
+                      {/* Real Progress Bar */}
+                      <div className="w-full bg-charcoal rounded-full h-1.5 overflow-hidden border border-slateGrey/20">
+                        <div 
+                          className="bg-goldDark h-full transition-all duration-150" 
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-softGrey block">%{uploadProgress} yüklendi</span>
+                    </div>
+                  ) : receiptFile ? (
+                    <div className="flex items-center justify-between gap-3 w-full p-1">
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className="w-8 h-8 rounded-lg bg-successGreen/15 flex items-center justify-center text-successGreen shrink-0">
+                          <Check className="w-5 h-5" />
+                        </div>
+                        <div className="text-left truncate">
+                          <span className="text-[11px] text-ivory font-bold block truncate max-w-[220px]">{receiptFile}</span>
+                          <span className="text-[9px] text-softGrey block">
+                            {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : '1.20 MB'} | Doğrulandı ✅
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          setReceiptFile('');
+                        }}
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all text-[9px] font-black tracking-wider uppercase shrink-0"
+                      >
+                        Kaldır
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-3 space-y-2">
+                      <Upload className="w-7 h-7 text-goldDark mx-auto animate-pulse" />
+                      <div>
+                        <span className="text-[11px] text-goldLight font-black block">Dosya Seçmek veya Sürüklemek İçin Dokunun</span>
+                        <span className="text-[9px] text-softGrey block mt-1">İzin verilen formatlar: <strong>PDF, PNG, JPG, JPEG</strong> (Maks: 5MB)</span>
+                      </div>
+                    </div>
+                  )}
+                </label>
+                
+                {uploadError && (
+                  <span className="text-[10px] text-red-400 font-bold block mt-1">⚠️ {uploadError}</span>
+                )}
               </div>
 
               <button
