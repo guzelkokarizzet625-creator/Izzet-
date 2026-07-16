@@ -50,6 +50,56 @@ interface CourtMessage {
   timestamp: string;
 }
 
+interface RealityAnalysis {
+  gercekler: string[];
+  tahminler: string[];
+  olasiliklar: string[];
+  hukukiGorusler: string[];
+}
+
+interface ContradictionItem {
+  id: string;
+  source: string;
+  statement: string;
+  comparisonWith: string;
+  contradictionDetail: string;
+  severity: 'DÜŞÜK' | 'ORTA' | 'YÜKSEK';
+}
+
+interface MissingEvidenceList {
+  eksikBelgeler: string[];
+  eksikTaniklar: string[];
+  eksikKamera: string[];
+  eksikBankaKayitlari: string[];
+  eksikHts: string[];
+  eksikBilirkisi: string[];
+  eksikResmiYazismalar: string[];
+}
+
+interface AdvisoryCouncilOpinion {
+  role: string;
+  advisorName: string;
+  opinion: string;
+  vote: 'KABUL' | 'REDD' | 'KISMİ KABUL' | 'ÇEKİMSER';
+}
+
+interface AdvisoryCouncil {
+  opinions: AdvisoryCouncilOpinion[];
+  ortakKarar: string;
+  fikirAyriliklari: string[];
+}
+
+interface DetailedRiskMatrix {
+  usulRiski: number;
+  ispatRiski: number;
+  delilRiski: number;
+  hakimTakdirRiski: number;
+  istinafRiski: number;
+  temyizRiski: number;
+  bozmaRiski: number;
+  karsiTarafAvantaji: number;
+}
+
 interface ExpandedCaseAnalysis {
   davaOzeti: string;
   kronoloji: Array<{ date: string; title: string; description: string }>;
@@ -81,6 +131,13 @@ interface ExpandedCaseAnalysis {
   delilYasaklari: string[];
   hukukiEksikler: string[];
   stratejikOneriler: string[];
+  
+  // AL HUKUK AI ULTRA ENGINE V3 Protocols
+  realityEngine?: RealityAnalysis;
+  contradictions?: ContradictionItem[];
+  missingEvidence?: MissingEvidenceList;
+  aiCouncil?: AdvisoryCouncil;
+  detailedRisks?: DetailedRiskMatrix;
 }
 
 interface FinalVerdictReport {
@@ -257,7 +314,7 @@ export default function CaseWorkspace() {
       },
       delilAnalizi: {
         guclu: [
-          "Yazılı sözleşmeler ve tarafların ıslak imzalı belgeleri.",
+          "Yazılı sözleşmeler and tarafların ıslak imzalı belgeleri.",
           "Banka transfer kayıtları ve resmi dekontlar.",
           "Karşı tarafın ikrar niteliğindeki yazılı mesajları ve e-posta yazışmaları."
         ],
@@ -291,16 +348,16 @@ export default function CaseWorkspace() {
         "Arabuluculuk Kanunu Uygulama Yönetmeliği"
       ],
       ictihatlar: [
-        "Yargıtay Hukuk Genel Kurulu Esas: 2021/450 Karar: 2022/112 sayılı emsal kararı",
+        "Yargıtay Hukuk Genel Kurulu Esas: 2021/450 Karar: 2022/112 (Bu bilgi doğrulanmalıdır.)",
         "Anayasa Mahkemesi Bireysel Başvuru No: 2019/1204 (Adil Yargılanma Hakkı)"
       ],
       yargitayKararlari: [
-        "Yargıtay 9. Hukuk Dairesi Esas: 2022/9800 Karar: 2023/1102 (İşçilik Alacaklarında İspat)",
-        "Yargıtay 2. Hukuk Dairesi Esas: 2021/300 Karar: 2022/1500 (Kusur Oranı ve Nafaka)"
+        "Yargıtay 9. Hukuk Dairesi Esas: 2022/9800 Karar: 2023/1102 (Bu bilgi doğrulanmalıdır.)",
+        "Yargıtay 2. Hukuk Dairesi Esas: 2021/300 Karar: 2022/1500 (Bu bilgi doğrulanmalıdır.)"
       ],
       emsalKararlar: [
-        "Bölge Adliye Mahkemesi (BAM) 12. Hukuk Dairesi E. 2023/150 K. 2023/450",
-        "Yargıtay İçtihadı Birleştirme Kurulu Kararı E. 2020/2 K. 2021/1"
+        "Bölge Adliye Mahkemesi (BAM) 12. Hukuk Dairesi E. 2023/150 K. 2023/450 (Bu bilgi doğrulanmalıdır.)",
+        "Yargıtay İçtihadı Birleştirme Kurulu Kararı E. 2020/2 K. 2021/1 (Bu bilgi doğrulanmalıdır.)"
       ],
       olasiSavunmalar: [
         "Davanın süresinde açılmadığı ve hak düşürücü sürenin dolduğu itirazı.",
@@ -337,7 +394,7 @@ export default function CaseWorkspace() {
         "Tanığın beyanları ile olay günü tutulan tutanak arasındaki çelişkinin sebebi nedir?",
         "Teknik bilirkişi raporundaki hesaplamalarda esas alınan faiz oranının dayanağı nedir?"
       ],
-      bilirkisiIhtiyaci: "Dosya kapsamındaki hesaplamalar uzmanlık gerektirdiğinden, nitelikli bir bilirkişi heyetinden rapor alınması elzemdir.",
+      bilirkisiIhtiyaci: "Dosya kapsamındaki hesaplamalar uzmanlık gerektirdiğinden, hesap bilirkişi kurulundan rapor alınması elzemdir.",
       arabuluculukIhtimali: "Dava şartı arabuluculuk kapsamında tarafların menfaat dengesi gözetilerek %65 ihtimalle sulh olunabileceği değerlendirilmektedir.",
       zamanasimiAnalizi: "Talep edilen alacaklar ve iddialar 5 yıllık genel zamanaşımı süresine tabi olup henüz süre dolmamıştır.",
       yetkiAnalizi: "HMK Madde 6 uyarınca davalının davanın açıldığı tarihteki yerleşim yeri mahkemesi veya sözleşmenin ifa edileceği yer mahkemesi yetkilidir. Yetki itirazı bulunmamaktadır.",
@@ -358,7 +415,87 @@ export default function CaseWorkspace() {
         "Bir sonraki celseye kadar eksik banka kayıtlarının celbi için müzekkere yazılmasını talep edin.",
         "Tanıkların beyanlarını destekleyecek nitelikteki WhatsApp yazışmalarını tarih sırasına göre dosyaya sunun.",
         "Karşı tarafın sunduğu yetki itirazının yersiz olduğunu HMK Madde 10 uyarınca çürütün."
-      ]
+      ],
+      realityEngine: {
+        gercekler: [
+          "Davacının dosyada sunulu ıslak imzalı iş akdi mevcuttur.",
+          "Banka hesap dökümünden davanın açıldığı tarihten önceki son 3 aya ait ödemelerin yapılmadığı sabittir.",
+          "Arabuluculuk son anlaşamama tutanağı usulüne uygun şekilde dosyaya ibraz edilmiştir."
+        ],
+        tahminler: [
+          "Hâkimin bilirkişi heyetinden ek hesap raporu talep etmesi kuvvetle muhtemeldir.",
+          "Karşı tarafın zamanaşımı def'i ileri sürmesi beklenmektedir ancak bu iddia hukuki dayanaktan yoksundur."
+        ],
+        olasiliklar: [
+          "Davacı lehine kıdem tazminatına hükmedilmesi olasılığı %82'dir.",
+          "Karşı tarafın kusur indiriminden yararlanma olasılığı %15 olarak hesaplanmıştır."
+        ],
+        hukukiGorusler: [
+          "HMK Madde 200 uyarınca iddiaların senetle ispatı zorunludur, bu kapsamda sunulan yazılı deliller davanın kazanılmasında anahtar rol oynayacaktır.",
+          "Bölge Adliye Mahkemesi'nin son emsal kararları doğrultusunda dava açılmasında herhangi bir usuli engel bulunmamaktadır."
+        ]
+      },
+      contradictions: [
+        {
+          id: '1',
+          source: 'Karşı Taraf Beyanı',
+          statement: 'Çalışanın fazla çalışma yapmadığı ve mesai saatlerinin 08:30-17:30 olduğu iddia edilmiştir.',
+          comparisonWith: 'HTS ve Kamera Kayıtları',
+          contradictionDetail: 'Celp edilen işyeri kamera kayıtları ve baz istasyonu HTS verilerinde davalının haftada 3 gün saat 21:00\'e kadar işyerinde kaldığı tespit edilmiştir.',
+          severity: 'YÜKSEK'
+        },
+        {
+          id: '2',
+          source: 'Tanık Beyanı (Davalı Tanığı)',
+          statement: 'Çalışanın maaşının elden ödenmediği, her şeyin bankadan yatırıldığı beyan edilmiştir.',
+          comparisonWith: 'Banka Kayıtları & SGK Verileri',
+          contradictionDetail: 'Banka dökümlerinde sadece asgari ücretin yattığı, ancak SGK prim matrahı ile çalışanın fiili maaşı arasında çelişki olduğu, elden ödemelerin yapıldığı şüphesi doğmaktadır.',
+          severity: 'ORTA'
+        }
+      ],
+      missingEvidence: {
+        eksikBelgeler: ["İşyeri özlük dosyası aslı", "Yıllık izin defteri tanzim kayıtları"],
+        eksikTaniklar: ["Uyuşmazlık döneminde görev yapan insan kaynakları sorumlusu tanık sıfatıyla dinlenmelidir."],
+        eksikKamera: ["Giriş-çıkış takip sistemi kamera kayıtlarının son 6 aylık dökümü"],
+        eksikBankaKayitlari: ["İlgili banka şubesine maaş hesabı hareketleri için müzekkere yazılması"],
+        eksikHts: ["Uyuşmazlık günlerine ilişkin baz istasyonu sinyal kayıtları"],
+        eksikBilirkisi: ["Hesap uzmanı bilirkişiden ek rapor tanzimi"],
+        eksikResmiYazismalar: ["Sosyal Güvenlik Kurumu'na prim matrahlarına ilişkin yazılan müzekkere cevabı"]
+      },
+      aiCouncil: {
+        opinions: [
+          { role: "Hakim", advisorName: "Hâkim Ahmet Altan", opinion: "İspat yükünün davacı tarafında olduğunu, sunulan yazılı delillerin usule uygunluğunu gözeteceğini belirtmiştir.", vote: "KABUL" },
+          { role: "Savcı", advisorName: "C. Savcısı Hilmi Erdem", opinion: "Kamu düzenini ilgilendiren herhangi bir hak ihlali olup olmadığının, kanun yolları bakımından denetleneceğini bildirmiştir.", vote: "KABUL" },
+          { role: "Davacı Avukatı", advisorName: "Davacı Vekili", opinion: "Müvekkilin tüm alacaklarının yasal faiziyle tahsilini ve sunulan güçlü delillerin hükme esas alınmasını talep etmiştir.", vote: "KABUL" },
+          { role: "Davalı Avukatı", advisorName: "Davalı Vekili", opinion: "Davanın usulden ve esastan reddini, iddiaların tamamen soyut olduğunu savunmuştur.", vote: "REDD" },
+          { role: "Yargıtay Üyesi", advisorName: "Yargıtay Üyesi", opinion: "Dava konusunun yerleşik Yargıtay içtihatları doğrultusunda maktu faiz ve usul kurallarına tam uyum göstermesi gerektiğini vurgulamıştır.", vote: "KABUL" },
+          { role: "Danıştay Üyesi", advisorName: "Danıştay Üyesi", opinion: "İdari prosedürlerin ve yetki sınırlarının kanuna uygun olarak işletildiğini teyit etmiştir.", vote: "KABUL" },
+          { role: "Anayasa Hukukçusu", advisorName: "Anayasa Hukukçusu", opinion: "Mülkiyet hakkı ve adil yargılanma hakkı çerçevesinde, savunma hakkının kısıtlanmamasını gözetmektedir.", vote: "KABUL" },
+          { role: "Ceza Profesörü", advisorName: "Ceza Profesörü", opinion: "Olayda sahtecilik veya haksız eylem kastının bulunup bulunmadığının somut delillerle ayrıştırılması gerektiğini belirtmiştir.", vote: "ÇEKİMSER" },
+          { role: "Medeni Hukuk Profesörü", advisorName: "Medeni Hukuk Profesörü", opinion: "Dürüstlük kuralı (TMK Madde 2) ve hakkın kötüye kullanılması yasağının somut olaya uygulanmasını önermiştir.", vote: "KABUL" },
+          { role: "İş Hukuku Profesörü", advisorName: "İş Hukuku Profesörü", opinion: "İşçi lehine yorum ilkesinin ve fazla mesainin ispatında tanık beyanları ile işyeri kayıtlarının karşılaştırılmasının önemine dikkat çekmiştir.", vote: "KABUL" },
+          { role: "Bilirkişi", advisorName: "Bilirkişi", opinion: "Dosyadaki hesaplamaların teknik yönden mevzuata uygun yapıldığını, ancak ek belgelerin beklenmesi gerektiğini mütalaa etmiştir.", vote: "KISMİ KABUL" },
+          { role: "Arabulucu", advisorName: "Arabulucu", opinion: "Taraflar arasındaki menfaat uyuşmazlığının sulh yoluyla daha hızlı ve az maliyetli çözülebileceğini mütalaa etmiştir.", vote: "KABUL" },
+          { role: "Adli Psikolog", advisorName: "Adli Psikolog", opinion: "Tanıkların duruşma esnasındaki beden dili ve beyanlarındaki tutarlılık düzeyinin yüksek olduğunu gözlemlemiştir.", vote: "KABUL" },
+          { role: "Kriminal Uzman", advisorName: "Kriminal Uzman", opinion: "Sunulan dijital belgelerin tahrifat içermediğini ve veri bütünlüğünün korunduğunu doğrulamıştır.", vote: "KABUL" },
+          { role: "Usul Hukuku Uzmanı", advisorName: "Usul Hukuku Uzmanı", opinion: "Sürelerin kaçırılmaması ve harçların eksiksiz tamamlanması halinde davanın esastan karara bağlanabileceğini belirtmiştir.", vote: "KABUL" }
+        ],
+        ortakKarar: "AL HUKUK AI Yapay Zekâ Danışma Konseyi, davacının iddialarının %80 oranında haklı olduğu ve sunulan yazılı deliller ile desteklendiği yönünde oy çokluğu ile ortak konsensüse varmıştır.",
+        fikirAyriliklari: [
+          "Davalı vekili, usul yönünden yetki itirazının öncelikli karara bağlanması gerektiğini savunurken; diğer konsey üyeleri davanın esasına geçilmesinde mutabıktır.",
+          "Ceza profesörü, eylemde kasıt unsurunun tam ispatlanamadığı yönünde şerh düşmüştür."
+        ]
+      },
+      detailedRisks: {
+        usulRiski: 12,
+        ispatRiski: 22,
+        delilRiski: 15,
+        hakimTakdirRiski: 28,
+        istinafRiski: 35,
+        temyizRiski: 40,
+        bozmaRiski: 25,
+        karsiTarafAvantaji: 20
+      }
     };
   };
 
@@ -367,7 +504,14 @@ export default function CaseWorkspace() {
     if (!activeCase) return;
     setIsSimulating(true);
     try {
-      const prompt = `Lütfen aşağıdaki hukuki uyuşmazlığı bir Ağır Ceza Hakimi, Yargıtay Üyesi, Bilirkişi ve Kıdemli Avukat bakış açılarıyla en ince ayrıntısına kadar analiz edin.
+      const prompt = `==================================================
+AL HUKUK AI ULTRA ENGINE V3
+ENTERPRISE LEGAL REASONING PROTOCOL
+==================================================
+
+EN KRİTİK KURAL:
+Hiçbir zaman; kanun maddesi, Yargıtay kararı, Danıştay kararı, AYM kararı, AİHM kararı, İçtihadı Birleştirme Kararı, Resmî Gazete bilgisi, karar numarası, esas numarası, tarih uydurma. Eğer doğruluğundan %100 emin değilsen, kesinlikle "Bu bilgi doğrulanmalıdır." ibaresini kullan. Asla hayali karar veya hayali referans oluşturma.
+
 Uyuşmazlık Başlığı: ${activeCase.title}
 Müvekkil: ${activeCase.clientName}
 Kategori: ${activeCase.category}
@@ -386,25 +530,73 @@ Lütfen her alanı Türkçe hukuk terminolojisine uygun, son derece detaylı ve 
   "hukukiDayanaklar": ["Hukuki dayanak kanunlar ve maddeleri..."],
   "kanunMaddeleri": ["Kanun maddesi başlığı ve içeriği..."],
   "yonetmelikler": ["İlgili yönetmelik hükümleri..."],
-  "ictihatlar": ["Emsal içtihatlar..."],
-  "yargitayKararlari": ["Yargıtay karar dairesi, esas, karar no ve özeti..."],
-  "emsalKararlar": ["Diğer mahkeme veya merci emsal kararları..."],
+  "ictihatlar": ["Emsal içtihatlar (Emin değilseniz sonuna ' (Bu bilgi doğrulanmalıdır.)' yazın)"],
+  "yargitayKararlari": ["Yargıtay karar dairesi, esas, karar no (Emin değilseniz sonuna ' (Bu bilgi doğrulanmalıdır.)' yazın)"],
+  "emsalKararlar": ["Diğer emsal kararlar (Emin değilseniz sonuna ' (Bu bilgi doğrulanmalıdır.)' yazın)"],
   "olasiSavunmalar": ["Davalının sunabileceği olası savunmalar..."],
   "olasiKarsiSavunmalar": ["Davacı tarafın bu savunmalara karşı ileri sürebileceği karşı argümanlar..."],
   "hakimSorulari": ["Hakimin duruşmada sorabileceği kritik sorular..."],
-  "savciSorulari": ["Savcının sorabileceği yasal sorular..."],
+  "savciSorulari": ["Savcinin sorabileceği yasal sorular..."],
   "karsiTarafAvukatiSorulari": ["Karşı tarafın çapraz sorguda sorabileceği sorular..."],
   "tanikSorgulari": ["Tanıklara yöneltilmesi gereken sorular..."],
   "caprazSorgular": ["Çapraz sorguda kullanılacak stratejik sorular..."],
-  "bilirkisiIhtiyaci": "Bilirkişi incelemesine gerek olup olmadığı ve hangi uzmanlık dalından rapor alınması gerektiği...",
-  "arabuluculukIhtimali": "Arabuluculuk ile davanın çözülme ihtimali ve müzakere stratejisi...",
+  "bilirkisiIhtiyaci": "Bilirkişi incelemesine gerek olup olmadığı ve uzmanlık alanı...",
+  "arabuluculukIhtimali": "Arabuluculuk ile çözülme ihtimali ve stratejisi...",
   "zamanasimiAnalizi": "Zamanaşımı veya hak düşürücü süre analizi...",
   "yetkiAnalizi": "Mahkemenin yetki yönünden analizi...",
   "gorevAnalizi": "Mahkemenin görev yönünden analizi...",
   "usulHatalari": ["Olası usul hataları ve prosedürel riskler..."],
-  "delilYasaklari": ["Hukuka aykırı elde edilmiş deliller ve değerlendirilmeme riskleri..."],
-  "hukukiEksikler": ["Dava dilekçesindeki veya dosyadaki hukuki eksiklikler..."],
-  "stratejikOneriler": ["Avukata yönelik dava kazanma stratejileri ve taktikler..."]
+  "delilYasaklari": ["Hukuka aykırı elde edilmiş deliller..."],
+  "hukukiEksikler": ["Hukuki eksiklikler..."],
+  "stratejikOneriler": ["Avukata yönelik dava kazanma stratejileri..."],
+  
+  "realityEngine": {
+    "gercekler": ["Kesin doğrulanmış ve kanıtlanmış somut vakıalar..."],
+    "tahminler": ["Hukuki gidişat ve yargılama sürecine ilişkin tahminler..."],
+    "olasiliklar": ["Kazanım, kayıp ve karşı iddiaların yasal olasılık oranları..."],
+    "hukukiGorusler": ["Bağımsız yasal analiz and nitelikli mütalaalar..."]
+  },
+  "contradictions": [
+    {
+      "id": "1",
+      "source": "Beyanın kaynağı (örneğin: Davalı Savunması veya Davalı Tanığı)",
+      "statement": "Çelişkili veya gerçek dışı beyan...",
+      "comparisonWith": "Çeliştiği delil/olgu (örneğin: HTS Kayıtları veya Islak imzalı bordro)",
+      "contradictionDetail": "Çelişkinin detaylı teknik yasal analizi...",
+      "severity": "DÜŞÜK"
+    }
+  ],
+  "missingEvidence": {
+    "eksikBelgeler": ["Eksik ve celp edilmesi gereken belgeler..."],
+    "eksikTaniklar": ["Dinlenmesi gereken kritik tanıklar..."],
+    "eksikKamera": ["Talep edilmesi gereken kamera/video kayıtları..."],
+    "eksikBankaKayitlari": ["Celp edilecek banka hesap dökümleri..."],
+    "eksikHts": ["İstenecek baz sinyal dökümleri..."],
+    "eksikBilirkisi": ["Gereken teknik bilirkişi mütalaaları..."],
+    "eksikResmiYazismalar": ["Yazılması gereken müzekkereler..."]
+  },
+  "aiCouncil": {
+    "opinions": [
+      {
+        "role": "Hakim",
+        "advisorName": "Hâkim Ahmet Altan",
+        "opinion": "Bu dosya hakkındaki özel hâkim görüşü...",
+        "vote": "KABUL"
+      }
+    ],
+    "ortakKarar": "Konseyin ortak konsensüs kararı...",
+    "fikirAyriliklari": ["Konsey üyeleri arasındaki uyuşmazlıklar ve karşı oylar..."]
+  },
+  "detailedRisks": {
+    "usulRiski": 15,
+    "ispatRiski": 25,
+    "delilRiski": 20,
+    "hakimTakdirRiski": 30,
+    "istinafRiski": 40,
+    "temyizRiski": 35,
+    "bozmaRiski": 20,
+    "karsiTarafAvantaji": 15
+  }
 }`;
 
       const response = await fetch('/api/gemini', {
@@ -1052,6 +1244,89 @@ Rapor Sonu - AL HUKUK AI Enterprise
                       </p>
                     </div>
 
+                    {/* AL HUKUK AI ULTRA ENGINE V3 - REALITY ENGINE */}
+                    <div className="bg-midnight/80 backdrop-blur-md border border-goldDark/30 rounded-xl p-5 space-y-4 shadow-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-60 h-60 bg-goldDark/5 rounded-full blur-[80px] pointer-events-none"></div>
+                      <div className="flex items-center justify-between border-b border-slateGrey/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-goldDark/10 flex items-center justify-center border border-goldDark/30">
+                            <Sparkles className="w-4 h-4 text-goldLight animate-pulse" />
+                          </div>
+                          <div>
+                            <h3 className="text-xs font-black text-goldLight uppercase tracking-widest leading-none">ULTRA ENGINE V3 // GERÇEKLİK MOTORU</h3>
+                            <p className="text-[9px] text-softGrey uppercase tracking-wider mt-1">Vakıa Doğruluk, Öngörü ve Bağımsız Mütalaa Katmanı</p>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-goldDark/20 text-goldLight border border-goldDark/30">REALITY_ENGINE_ACTIVE</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* GERÇEKLER */}
+                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Somut Gerçekler
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-400/70">KESİN BİLGİ</span>
+                          </div>
+                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
+                            {(expandedAnalysis?.realityEngine?.gercekler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.gercekler || []).map((item, i) => (
+                              <li key={i} className="marker:text-emerald-400">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* TAHMİNLER */}
+                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              Yargısal Tahminler
+                            </span>
+                            <span className="text-[9px] font-bold text-blue-400/70">YOL HARİTASI</span>
+                          </div>
+                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
+                            {(expandedAnalysis?.realityEngine?.tahminler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.tahminler || []).map((item, i) => (
+                              <li key={i} className="marker:text-blue-400">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* OLASILIKLAR */}
+                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-goldLight uppercase tracking-widest flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-goldLight animate-pulse"></span>
+                              Olasılıklar
+                            </span>
+                            <span className="text-[9px] font-bold text-goldLight/70">YÜZDESEL İHTİMAL</span>
+                          </div>
+                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
+                            {(expandedAnalysis?.realityEngine?.olasiliklar || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.olasiliklar || []).map((item, i) => (
+                              <li key={i} className="marker:text-goldLight">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* HUKUKİ GÖRÜŞLER */}
+                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              Hukuki Görüşler
+                            </span>
+                            <span className="text-[9px] font-bold text-purple-400/70">BAĞIMSIZ MÜTALAA</span>
+                          </div>
+                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
+                            {(expandedAnalysis?.realityEngine?.hukukiGorusler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.hukukiGorusler || []).map((item, i) => (
+                              <li key={i} className="marker:text-purple-400">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Yetki & Görev Analizi */}
                       <div className="bg-midnight p-5 rounded-xl border border-slateGrey/30 space-y-3.5">
@@ -1186,6 +1461,97 @@ Rapor Sonu - AL HUKUK AI Enterprise
                         </div>
                       </div>
                     </div>
+
+                    {/* ULTRA ENGINE V3 - DETAYLI EKSİK DELİL VE ÇAPRAZ ÇELİŞKİ PANELİ */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* ÇELİŞKİLİ BEYAN TESPİT MOTORU */}
+                      <div className="bg-midnight/70 p-5 rounded-xl border border-goldDark/30 space-y-4">
+                        <div className="flex items-center justify-between border-b border-slateGrey/20 pb-2">
+                          <h3 className="text-xs font-bold text-goldLight flex items-center gap-1.5 uppercase tracking-wider">
+                            <AlertTriangle className="w-4 h-4 text-goldDark" />
+                            Çapraz Çelişkili Beyan Analizi
+                          </h3>
+                          <span className="text-[9px] bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded font-black font-mono">CRITICAL_ENGINE</span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {(expandedAnalysis?.contradictions || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).contradictions || []).map((c, i) => (
+                            <div key={i} className="bg-charcoal/80 p-4 rounded-xl border border-red-900/20 space-y-2.5 relative overflow-hidden">
+                              <div className="absolute right-3 top-3 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-red-950/50 text-red-400 border border-red-800/40">
+                                {c.severity} ŞÜPHE
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black text-goldLight block uppercase tracking-wide">KAYNAK: {c.source}</span>
+                                <p className="text-xs text-softGrey italic">"{c.statement}"</p>
+                              </div>
+                              <div className="border-t border-slateGrey/10 pt-2 space-y-1">
+                                <span className="text-[10px] font-black text-emerald-400 block uppercase tracking-wide">ÇELİŞTİĞİ DELİL/OLGU: {c.comparisonWith}</span>
+                                <p className="text-xs text-softGrey">{c.contradictionDetail}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* EKSİK DELİL VE MÜZEKKERE MATRİSİ */}
+                      <div className="bg-midnight/70 p-5 rounded-xl border border-goldDark/30 space-y-4">
+                        <div className="flex items-center justify-between border-b border-slateGrey/20 pb-2">
+                          <h3 className="text-xs font-bold text-goldLight flex items-center gap-1.5 uppercase tracking-wider">
+                            <Scale className="w-4 h-4 text-goldDark" />
+                            Yasal Eksik Delil & Celp Listesi
+                          </h3>
+                          <span className="text-[9px] bg-goldDark/10 text-goldLight border border-goldDark/30 px-2 py-0.5 rounded font-black font-mono">COURT_MANDATORY</span>
+                        </div>
+                        
+                        {(() => {
+                          const me = expandedAnalysis?.missingEvidence || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).missingEvidence;
+                          return (
+                            <div className="space-y-3.5 text-xs text-softGrey">
+                              {me?.eksikBelgeler?.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Eksik Evraklar:</strong>
+                                  <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                                    {me.eksikBelgeler.map((item, idx) => <li key={idx}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {me?.eksikTaniklar?.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Dinlenmesi Önerilen Tanıklara İlişkin Not:</strong>
+                                  <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                                    {me.eksikTaniklar.map((item, idx) => <li key={idx}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {me?.eksikBankaKayitlari?.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Celp Edilecek Banka Hesap Dökümleri:</strong>
+                                  <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                                    {me.eksikBankaKayitlari.map((item, idx) => <li key={idx}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {me?.eksikHts?.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Talep Edilecek HTS / Sinyal Verileri:</strong>
+                                  <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                                    {me.eksikHts.map((item, idx) => <li key={idx}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {me?.eksikResmiYazismalar?.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-goldDark block text-[10px] uppercase tracking-wider">Yazılacak Kurum Müzekkereleri:</strong>
+                                  <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                                    {me.eksikResmiYazismalar.map((item, idx) => <li key={idx}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1302,6 +1668,100 @@ Rapor Sonu - AL HUKUK AI Enterprise
                         </div>
                       </div>
                     </div>
+
+                    {/* ULTRA ENGINE V3 - AI DANIŞMA KONSEYİ (AI ADVISORY COUNCIL) */}
+                    <div className="bg-midnight/70 p-5 rounded-xl border border-goldDark/30 space-y-4">
+                      <div className="flex items-center justify-between border-b border-slateGrey/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Scale className="w-5 h-5 text-goldDark" />
+                          <div>
+                            <h3 className="text-xs font-black text-goldLight uppercase tracking-widest leading-none">AL HUKUK AI Yapay Zekâ Danışma Konseyi</h3>
+                            <p className="text-[9px] text-softGrey uppercase tracking-wider mt-1">15 Farklı Hukuk Uzmanının Bağımsız Karar Konsensüsü</p>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-goldDark/20 text-goldLight border border-goldDark/30">CONSENSUAL_CONFERENCE_V3</span>
+                      </div>
+
+                      {/* Common Decision / Ortak Karar */}
+                      <div className="bg-gradient-to-r from-goldDark/10 to-amberAccent/5 p-4 rounded-xl border border-goldDark/25 space-y-2">
+                        <strong className="text-[11px] font-black text-goldLight uppercase tracking-widest block">✓ KONSEY ORTAK KONSENSÜS KARARI</strong>
+                        <p className="text-xs text-softGrey leading-relaxed">
+                          {expandedAnalysis?.aiCouncil?.ortakKarar || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.ortakKarar}
+                        </p>
+                        {((expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.fikirAyriliklari || []).length > 0) && (
+                          <div className="border-t border-slateGrey/10 pt-2 mt-2 space-y-1">
+                            <span className="text-[9px] font-black text-warningOrange uppercase block">Muhalefet Şerhleri / Fikir Ayrılıkları:</span>
+                            <ul className="list-disc pl-4 text-[10px] text-softGrey/90 space-y-0.5">
+                              {(expandedAnalysis?.aiCouncil?.fikirAyriliklari || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.fikirAyriliklari || []).map((diff, idx) => (
+                                <li key={idx}>{diff}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Grid of opinions */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+                        {(expandedAnalysis?.aiCouncil?.opinions || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).aiCouncil.opinions || []).map((op, idx) => {
+                          const getVoteBadge = (vote: string) => {
+                            if (vote === 'KABUL') return 'text-emerald-400 bg-emerald-950/20 border-emerald-900/40';
+                            if (vote === 'REDD') return 'text-rose-400 bg-rose-950/20 border-rose-900/40';
+                            if (vote === 'KISMİ KABUL') return 'text-amber-400 bg-amber-950/20 border-amber-900/40';
+                            return 'text-softGrey bg-midnight border-slateGrey/40';
+                          };
+                          return (
+                            <div key={idx} className="bg-charcoal/60 p-3 rounded-lg border border-slateGrey/20 space-y-2.5 flex flex-col justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-black text-goldLight uppercase tracking-wider">{op.role}</span>
+                                  <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${getVoteBadge(op.vote)}`}>
+                                    {op.vote}
+                                  </span>
+                                </div>
+                                <strong className="text-[10px] text-ivory block mt-0.5">{op.advisorName}</strong>
+                                <p className="text-[11px] text-softGrey leading-relaxed italic">"{op.opinion}"</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* DETAYLI RİSK MATRİSİ */}
+                    {(() => {
+                      const dr = expandedAnalysis?.detailedRisks || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).detailedRisks;
+                      const riskFields = [
+                        { label: "Usul Hukuku Riski (Süre / Harç / Yetki)", val: dr?.usulRiski || 12, color: "bg-amberAccent" },
+                        { label: "İspat Külfeti Riski (Delil Yetersizliği)", val: dr?.ispatRiski || 22, color: "bg-errorRed" },
+                        { label: "Delil Geçersizliği / Yasak Delil Riski", val: dr?.delilRiski || 15, color: "bg-red-500" },
+                        { label: "Hâkim Takdir Yetkisi & Kanaat Riski", val: dr?.hakimTakdirRiski || 28, color: "bg-purple-500" },
+                        { label: "İstinaf Süreci Kaybetme Riski", val: dr?.istinafRiski || 35, color: "bg-orange-500" },
+                        { label: "Yargıtay / Temyiz Bozma Riski", val: dr?.temyizRiski || 40, color: "bg-amber-500" },
+                        { label: "Hüküm Sonrası Bozma / Karar Düzeltme", val: dr?.bozmaRiski || 25, color: "bg-yellow-500" },
+                        { label: "Karşı Tarafın Hukuki Strateji Avantajı", val: dr?.karsiTarafAvantaji || 20, color: "bg-blue-500" }
+                      ];
+                      return (
+                        <div className="bg-midnight/70 p-5 rounded-xl border border-goldDark/30 space-y-4">
+                          <h3 className="text-xs font-bold text-goldLight flex items-center gap-1.5 uppercase tracking-wider">
+                            <ShieldAlert className="w-4 h-4 text-goldDark" />
+                            8-Boyutlu Detaylı Hukuki Risk Matrisi
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5">
+                            {riskFields.map((field, idx) => (
+                              <div key={idx} className="space-y-1.5">
+                                <div className="flex justify-between text-[11px]">
+                                  <span className="text-softGrey font-medium">{field.label}</span>
+                                  <strong className="text-ivory font-black">%{field.val}</strong>
+                                </div>
+                                <div className="w-full bg-charcoal h-1.5 rounded-full overflow-hidden border border-slateGrey/20">
+                                  <div className={`h-full ${field.color} transition-all duration-500`} style={{ width: `${field.val}%` }}></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Draft Petition Preview */}
                     <div className="border-t border-slateGrey/30 pt-4 space-y-3">
