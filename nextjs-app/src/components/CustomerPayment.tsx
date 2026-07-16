@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, SubscriptionPackageId } from '@/context/AppContext';
 import { 
   CreditCard, 
   Copy, 
@@ -923,7 +923,7 @@ export default function CustomerPayment() {
                 <span className="text-[10px] font-black text-softGrey uppercase tracking-wider block">Gönderilen Ödeme Bildirimleriniz</span>
                 <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
                   {userHistory.map(uh => {
-                    const label = uh.receiptFileName || (uh as any).receiptUrl || 'Dekont Belgesi';
+                    const label = (uh as any).receiptFileName || (uh as any).receiptUrl || 'Dekont Belgesi';
                     const displayAmt = typeof uh.amount === 'number' ? `₺${uh.amount.toFixed(2)}` : uh.amount;
                     const statusLower = uh.status.toLowerCase();
                     const isPending = statusLower === 'pending';

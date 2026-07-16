@@ -46,6 +46,7 @@ export default function AdminPanel() {
     paymentRequests,
     approvePaymentRequest,
     rejectPaymentRequest,
+    subscriptionPackages,
     
     // Enterprise Dynamic Payments Admin
     bankAccounts,
@@ -1025,9 +1026,9 @@ export default function AdminPanel() {
                                 {bank.iban}
                               </div>
                               <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(bank.iban);
-                                  showToast("IBAN kopyalandı!", "success");
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(bank.iban);
+                                  alert("IBAN kopyalandı.");
                                 }}
                                 className="text-[9px] text-softGrey hover:text-goldLight underline font-bold shrink-0"
                               >
@@ -1306,6 +1307,10 @@ export default function AdminPanel() {
                         price: parseFloat(data.get('price') as string),
                         description: data.get('description') as string,
                         durationText: data.get('durationText') as string,
+                        durationDays: 30,
+                        color: 'gold',
+                        iconName: 'Star',
+                        isFeatured: false,
                         badge: data.get('badge') as string || undefined,
                         oldPrice: data.get('oldPrice') ? parseFloat(data.get('oldPrice') as string) : undefined,
                         discountPercent: data.get('discountPercent') ? parseInt(data.get('discountPercent') as string) : undefined,
