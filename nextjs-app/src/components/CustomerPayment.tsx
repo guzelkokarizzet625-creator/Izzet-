@@ -36,7 +36,11 @@ export default function CustomerPayment() {
     submitPaymentReceipt, 
     paymentReceipts,
     togglePremiumRole,
-    showToast
+    showToast,
+    submitPaymentRequest,
+    paymentRequests,
+    subscriptionPackages,
+    userSubscriptionDetails
   } = useApp();
 
   // Tab State: subscription, plans (checkout), bank, invoices
@@ -195,12 +199,17 @@ export default function CustomerPayment() {
 
     setBankLoading(true);
     setTimeout(() => {
-      submitPaymentReceipt(senderName, senderEmail, senderIban, bankAmount, receiptFile);
+      const isStarter = bankAmount.includes('199');
+      const isPopular = bankAmount.includes('450');
+      const amountVal = isStarter ? 199 : isPopular ? 450 : 1250;
+      const packageId: SubscriptionPackageId = isStarter ? 'starter' : isPopular ? 'popular' : 'advantage';
+
+      submitPaymentRequest(senderName, "0532 123 4567", senderEmail, senderIban, packageId, amountVal, receiptFile);
       
       const invoiceId = `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
       const newInvoice: LocalInvoice = {
         id: invoiceId,
-        planName: bankAmount === '₺199.00' ? 'Aylık Standart Paket' : bankAmount === '₺450.00' ? 'Yıllık Profesyonel Üyelik' : 'Kurumsal Enterprise Lisans',
+        planName: getPlanTitle(isStarter ? 'monthly' : isPopular ? 'annual' : 'corporate'),
         date: new Date().toLocaleDateString('tr-TR'),
         amount: bankAmount,
         paymentMethod: 'BANK_TRANSFER',
@@ -230,7 +239,9 @@ export default function CustomerPayment() {
     }, 1200);
   };
 
-  const userHistory = paymentReceipts.filter(r => r.email === userProfile.email);
+  const userHistory = paymentRequests 
+    ? paymentRequests.filter(r => r.email === userProfile.email)
+    : paymentReceipts.filter(r => r.email === userProfile.email);
 
   return (
     <div className="bg-charcoal border border-slateGrey/60 rounded-2xl p-6 space-y-6 max-w-5xl mx-auto font-sans text-ivory relative">
@@ -714,23 +725,32 @@ export default function CustomerPayment() {
               <div className="border-t border-slateGrey/30 pt-4 space-y-2">
                 <span className="text-[10px] font-black text-softGrey uppercase tracking-wider block">Gönderilen Ödeme Bildirimleriniz</span>
                 <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-                  {userHistory.map(uh => (
-                    <div key={uh.id} className="bg-charcoal p-2.5 rounded-lg flex justify-between items-center text-[10px]">
-                      <span className="truncate max-w-[180px] text-ivory">{uh.receiptFileName}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-goldLight">{uh.amount}</span>
-                        <span className={`font-black uppercase text-[8px] px-1.5 py-0.5 rounded ${
-                          uh.status === 'PENDING' 
-                            ? 'bg-warningOrange/10 text-warningOrange border border-warningOrange/20' 
-                            : uh.status === 'APPROVED' 
-                              ? 'bg-successGreen/10 text-successGreen border border-successGreen/20' 
-                              : 'bg-errorRed/10 text-errorRed border border-errorRed/20'
-                        }`}>
-                          {uh.status === 'PENDING' ? 'Bekliyor' : uh.status === 'APPROVED' ? 'Onaylandı' : 'Reddedildi'}
-                        </span>
+                  {userHistory.map(uh => {
+                    const label = uh.receiptFileName || (uh as any).receiptUrl || 'Dekont Belgesi';
+                    const displayAmt = typeof uh.amount === 'number' ? `₺${uh.amount.toFixed(2)}` : uh.amount;
+                    const statusLower = uh.status.toLowerCase();
+                    const isPending = statusLower === 'pending';
+                    const isApproved = statusLower === 'approved';
+                    const isRejected = statusLower === 'rejected';
+
+                    return (
+                      <div key={uh.id} className="bg-charcoal p-2.5 rounded-lg flex justify-between items-center text-[10px] border border-slateGrey/20 hover:border-slateGrey/40 transition-all">
+                        <span className="truncate max-w-[180px] text-ivory font-mono">{label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-goldLight font-bold">{displayAmt}</span>
+                          <span className={`font-black uppercase text-[8px] px-1.5 py-0.5 rounded ${
+                            isPending 
+                              ? 'bg-warningOrange/10 text-warningOrange border border-warningOrange/20' 
+                              : isApproved 
+                                ? 'bg-successGreen/10 text-successGreen border border-successGreen/20' 
+                                : 'bg-errorRed/10 text-errorRed border border-errorRed/20'
+                          }`}>
+                            {isPending ? 'Bekliyor' : isApproved ? 'Onaylandı' : 'Reddedildi'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

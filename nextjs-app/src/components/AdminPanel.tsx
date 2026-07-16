@@ -40,6 +40,11 @@ export default function AdminPanel() {
     rejectPaymentReceipt,
     supportTickets,
     
+    // Premium V3.0
+    paymentRequests,
+    approvePaymentRequest,
+    rejectPaymentRequest,
+    
     // Enterprise Extensions
     adminUsers,
     coupons,
@@ -75,6 +80,9 @@ export default function AdminPanel() {
   } = useApp();
 
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('stats');
+
+  // Premium V3.0 Input notes per request
+  const [requestAdminNotes, setRequestAdminNotes] = useState<Record<string, string>>({});
 
   // Input states for Settings
   const [ibanInput, setIbanInput] = useState(userProfile.systemIban);
@@ -177,10 +185,13 @@ export default function AdminPanel() {
   const pendingReceipts = paymentReceipts.filter(r => r.status === 'PENDING');
   const processedReceipts = paymentReceipts.filter(r => r.status !== 'PENDING');
 
+  const pendingRequests = paymentRequests ? paymentRequests.filter(r => r.status === 'pending') : [];
+  const processedRequests = paymentRequests ? paymentRequests.filter(r => r.status !== 'pending') : [];
+
   // Compute stats metrics dynamically
   const totalUsersCount = adminUsers.length;
   const activePremiumCount = adminUsers.filter(u => u.plan !== 'STANDARD' && u.active).length;
-  const pendingReceiptsCount = pendingReceipts.length;
+  const pendingReceiptsCount = pendingRequests.length;
 
   if (!userProfile.isAdmin) {
     return (
@@ -404,77 +415,155 @@ export default function AdminPanel() {
         {/* 3. PAYMENT RECEIPTS & APPROVALS PANEL */}
         {activeAdminTab === 'receipts' && (
           <div className="space-y-6 animate-fade-in">
-            <div>
-              <h2 className="text-xs font-bold text-goldLight uppercase tracking-wider">Hale Hazırda Bekleyen Dekont Talepleri ({pendingReceipts.length})</h2>
-              <p className="text-[10px] text-softGrey">Banka havalesi ile premium üyelik başvurusunda bulunmuş avukatların havale belgeleri</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xs font-bold text-goldLight uppercase tracking-wider">Hale Hazırda Bekleyen Dekont Talepleri ({pendingRequests.length})</h2>
+                <p className="text-[10px] text-softGrey">Banka havalesi ile premium üyelik başvurusunda bulunmuş avukatların havale belgeleri ve denetim detayları</p>
+              </div>
+              <span className="bg-goldDark/10 text-goldLight border border-goldDark/20 text-[8px] font-black px-2 py-0.5 rounded uppercase">Premium V3.0 Engine</span>
             </div>
 
-            {pendingReceipts.length === 0 ? (
-              <div className="bg-midnight p-6 rounded-xl border border-slateGrey/40 text-center text-xs text-softGrey italic">
-                Onaylanacak havale talebi bulunmamaktadır.
+            {pendingRequests.length === 0 ? (
+              <div className="bg-midnight p-8 rounded-xl border border-slateGrey/40 text-center text-xs text-softGrey italic space-y-2">
+                <Clock className="w-8 h-8 text-softGrey/55 mx-auto" />
+                <p>Onaylanacak bekleyen havale veya üyelik talebi bulunmamaktadır.</p>
               </div>
             ) : (
-              <div className="space-y-3.5">
-                {pendingReceipts.map(rec => (
-                  <div key={rec.id} className="bg-midnight p-4 rounded-xl border border-slateGrey/50 space-y-3">
-                    <div className="flex justify-between items-start text-xs">
-                      <div>
-                        <span className="font-bold text-ivory flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-goldDark" />
-                          {rec.senderName}
-                        </span>
-                        <span className="text-[10px] text-softGrey block mt-0.5">E-Posta: {rec.email} | Gönderen IBAN: {rec.iban}</span>
+              <div className="space-y-4">
+                {pendingRequests.map(req => {
+                  const displayPkg = req.packageId === 'starter' ? 'Aylık Standart' : req.packageId === 'popular' ? 'Yıllık Profesyonel' : 'Kurumsal Enterprise';
+                  const pkgBadgeColor = req.packageId === 'starter' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : req.packageId === 'popular' ? 'bg-goldDark/15 text-goldLight border border-goldDark/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+                  
+                  return (
+                    <div key={req.id} className="bg-midnight p-5 rounded-xl border border-slateGrey/50 space-y-4 hover:border-slateGrey transition-all">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 text-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-ivory text-sm flex items-center gap-1.5">
+                              <User className="w-4 h-4 text-goldDark" />
+                              {req.fullName}
+                            </span>
+                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${pkgBadgeColor}`}>
+                              {displayPkg}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-softGrey mt-1.5 space-y-0.5">
+                            <p>E-Posta: <strong className="text-ivory">{req.email}</strong> | Tel: <strong className="text-ivory">{req.phone}</strong></p>
+                            <p>Gönderen IBAN: <strong className="text-ivory font-mono">{req.iban}</strong></p>
+                            <p className="flex items-center gap-2">Sistem IP Adresi: <span className="font-mono bg-charcoal/50 px-1 py-0.2 rounded text-[9px]">{req.ipAddress}</span></p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-lg font-black text-emerald-400">₺{req.amount.toFixed(2)}</span>
+                          <span className="text-[9px] text-softGrey block mt-0.5">{req.createdAt}</span>
+                          <span className="text-[8px] font-mono text-softGrey/70 block mt-0.5">Talep ID: {req.id}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-black text-emerald-400 block">{rec.amount}</span>
-                        <span className="text-[9px] text-softGrey block">{rec.date}</span>
-                      </div>
-                    </div>
 
-                    <div className="bg-charcoal p-2.5 rounded-lg text-[10px] flex justify-between items-center border border-slateGrey">
-                      <span className="text-softGrey">Sistem Dekont Dosyası: <strong className="text-goldLight">{rec.receiptFileName}</strong></span>
-                      <div className="flex gap-1.5 shrink-0">
-                        <button
-                          onClick={() => rejectPaymentReceipt(rec.id)}
-                          className="bg-errorRed/10 hover:bg-errorRed/20 text-errorRed font-bold px-2.5 py-1.5 rounded border border-errorRed/25 flex items-center gap-1 transition-colors"
-                        >
-                          <XCircle className="w-3 h-3" />
-                          Reddet
-                        </button>
-                        <button
-                          onClick={() => approvePaymentReceipt(rec.id)}
-                          className="bg-successGreen/10 hover:bg-successGreen/20 text-successGreen font-bold px-2.5 py-1.5 rounded border border-successGreen/25 flex items-center gap-1 transition-colors"
-                        >
-                          <CheckCircle className="w-3 h-3" />
-                          Onayla
-                        </button>
+                      {/* Receipt Doc Details & Admin Comments */}
+                      <div className="bg-charcoal/60 p-3 rounded-lg border border-slateGrey/40 space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-[10px]">
+                          <span className="text-softGrey">Ekteki Dekont Kanıtı: <strong className="text-goldLight font-mono">{req.receiptUrl}</strong></span>
+                          <button
+                            onClick={() => window.open('#', '_blank')}
+                            className="text-goldDark hover:text-goldLight font-black uppercase tracking-wider text-[9px] block w-fit shrink-0"
+                          >
+                            Dekontu Yeni Sekmede Göster ↗
+                          </button>
+                        </div>
+
+                        {/* Admin Notes Box */}
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] text-softGrey font-bold uppercase tracking-wider block">Yönetici Değerlendirme Notu (Opsiyonel)</span>
+                          <input
+                            type="text"
+                            placeholder="Dekont geçerli, tutar eşleşti... / Havale açıklamasında e-posta eksik..."
+                            value={requestAdminNotes[req.id] || ''}
+                            onChange={e => setRequestAdminNotes(prev => ({ ...prev, [req.id]: e.target.value }))}
+                            className="w-full bg-midnight border border-slateGrey/50 px-3 py-2 rounded-lg text-[11px] text-ivory placeholder-softGrey/40 focus:outline-none focus:border-goldDark"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2.5 pt-1">
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`${req.fullName} isimli kullanıcının ödemesini REDDETMEK istediğinize emin misiniz?`)) {
+                                rejectPaymentRequest(req.id, requestAdminNotes[req.id]);
+                              }
+                            }}
+                            className="bg-errorRed/10 hover:bg-errorRed/20 text-errorRed font-bold px-3 py-2 rounded-lg border border-errorRed/25 flex items-center gap-1.5 transition-colors text-[10px] uppercase tracking-wider"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Reddet
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`${req.fullName} isimli kullanıcının ödemesini onaylayıp Premium haklarını tanımlamak istiyor musunuz?`)) {
+                                approvePaymentRequest(req.id, requestAdminNotes[req.id]);
+                              }
+                            }}
+                            className="bg-successGreen/10 hover:bg-successGreen/20 text-successGreen font-bold px-3.5 py-2 rounded-lg border border-successGreen/25 flex items-center gap-1.5 transition-colors text-[10px] uppercase tracking-wider"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Onayla & Aktif Et
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {/* Past History */}
-            <div className="border-t border-slateGrey/30 pt-5 space-y-3">
-              <h3 className="text-xs font-bold text-goldLight uppercase tracking-wide">Önceki İşlem Geçmişi ({processedReceipts.length})</h3>
-              <div className="space-y-2.5">
-                {processedReceipts.map(rec => (
-                  <div key={rec.id} className="bg-midnight/50 p-3 rounded-lg border border-slateGrey/30 flex justify-between items-center text-xs">
-                    <div>
-                      <span className="font-bold text-softGrey">{rec.senderName} ({rec.email})</span>
-                      <span className="text-[9px] text-softGrey/80 block">Tutar: {rec.amount} | Tarih: {rec.date}</span>
-                    </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                      rec.status === 'APPROVED' 
-                        ? 'bg-successGreen/15 text-successGreen border border-successGreen/20' 
-                        : 'bg-errorRed/15 text-errorRed border border-errorRed/20'
-                    }`}>
-                      {rec.status === 'APPROVED' ? 'ONAYLANDI' : 'REDDEDİLDİ'}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="border-t border-slateGrey/30 pt-6 space-y-3.5">
+              <h3 className="text-xs font-bold text-goldLight uppercase tracking-wide flex items-center gap-2">
+                <Clock className="w-4 h-4 text-goldDark" />
+                Arşivlenmiş İşlem Geçmişi ({processedRequests.length})
+              </h3>
+              
+              {processedRequests.length === 0 ? (
+                <div className="bg-midnight/30 p-4 rounded-lg border border-slateGrey/20 text-center text-[10px] text-softGrey italic">
+                  Henüz onaylanmış veya reddedilmiş işlem bulunmuyor.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {processedRequests.map(req => {
+                    const isApproved = req.status === 'approved';
+                    const displayPkg = req.packageId === 'starter' ? 'Aylık Standart' : req.packageId === 'popular' ? 'Yıllık Profesyonel' : 'Kurumsal Enterprise';
+                    
+                    return (
+                      <div key={req.id} className="bg-midnight/50 p-4 rounded-xl border border-slateGrey/30 space-y-2 text-xs">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-softGrey">{req.fullName} ({req.email})</span>
+                              <span className="text-[8px] bg-charcoal text-softGrey px-1.5 py-0.2 rounded border border-slateGrey/40 font-mono">{displayPkg}</span>
+                            </div>
+                            <span className="text-[9px] text-softGrey/80 block mt-1">
+                              Tutar: <strong className="text-goldLight">₺{req.amount.toFixed(2)}</strong> | 
+                              Tarih: {req.createdAt} {req.processedAt && `| İşlem: ${req.processedAt}`}
+                            </span>
+                          </div>
+                          <span className={`text-[9px] font-black px-2.5 py-0.5 rounded border uppercase shrink-0 ${
+                            isApproved 
+                              ? 'bg-successGreen/15 text-successGreen border-successGreen/20' 
+                              : 'bg-errorRed/15 text-errorRed border-errorRed/20'
+                          }`}>
+                            {isApproved ? 'ONAYLANDI' : 'REDDEDİLDİ'}
+                          </span>
+                        </div>
+                        {req.adminNotes && (
+                          <div className="bg-charcoal/30 px-3 py-2 rounded text-[10px] text-softGrey italic border-l border-slateGrey">
+                            <span className="font-bold text-[9px] uppercase tracking-wide text-goldDark not-italic block mb-0.5">Yönetici Notu:</span>
+                            {req.adminNotes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -107,6 +107,47 @@ export interface SupportTicket {
   text: string;
 }
 
+// --- NEW PREMIUM PAYMENT & SUBSCRIPTION TIERS V3.0 ---
+export type SubscriptionPackageId = 'starter' | 'popular' | 'advantage';
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface SubscriptionPackage {
+  id: SubscriptionPackageId;
+  name: string;
+  durationDays: number;
+  price: number;
+  badge?: string;
+  subtext?: string;
+  savingsPercent?: number;
+}
+
+export interface PaymentRequest {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  iban: string;
+  packageId: SubscriptionPackageId;
+  amount: number;
+  receiptUrl: string; // File preview path/URL
+  description?: string;
+  status: PaymentStatus;
+  createdAt: string;
+  processedAt?: string;
+  ipAddress: string;
+  adminNotes?: string;
+}
+
+export interface UserSubscriptionDetails {
+  userId: string;
+  isPremium: boolean;
+  packageId?: SubscriptionPackageId;
+  startDate?: string;
+  endDate?: string;
+  activatedAt?: string;
+}
+
 // --- Enterprise Admin & System Extensions ---
 export interface AdminUser {
   id: number;
@@ -177,6 +218,11 @@ interface AppState {
   lawsAndPrecedents: LawDatabaseItem[];
   securityLogs: SecurityLog[];
   
+  // Premium V3.0 States
+  subscriptionPackages: SubscriptionPackage[];
+  paymentRequests: PaymentRequest[];
+  userSubscriptionDetails: UserSubscriptionDetails | null;
+  
   // Configs
   geminiModel: string;
   geminiTemperature: number;
@@ -222,6 +268,12 @@ interface AppContextType extends AppState {
   submitPaymentReceipt: (senderName: string, email: string, iban: string, amount: string, fileName: string) => void;
   approvePaymentReceipt: (id: number) => void;
   rejectPaymentReceipt: (id: number) => void;
+  
+  // Premium V3.0 Triggers
+  submitPaymentRequest: (fullName: string, phone: string, email: string, iban: string, packageId: SubscriptionPackageId, amount: number, receiptUrl: string, description?: string) => void;
+  approvePaymentRequest: (id: string, adminNotes?: string) => void;
+  rejectPaymentRequest: (id: string, adminNotes?: string) => void;
+  
   runAiLegalSearch: (query: string) => Promise<void>;
   draftAiPetition: (title: string, details: string) => Promise<void>;
   runAcademyTeacher: (lessonTitle: string) => Promise<void>;
@@ -344,6 +396,45 @@ const defaultEvents: CalendarEvent[] = [
 const defaultReceipts: PaymentReceipt[] = [
   { id: 101, senderName: "Av. Meltem Aras", email: "meltem@aras.av.tr", iban: "TR12 3456 ... 89", amount: "₺199.00", date: "13.07.2026", receiptFileName: "MeltemAras_Aylik_Standart.pdf", status: "PENDING" },
   { id: 102, senderName: "Av. Selim Yazıcı", email: "selim@yazici-hukuk.av.tr", iban: "TR96 0006 ... 01", amount: "₺450.00", date: "12.07.2026", receiptFileName: "SelimYazici_Yillik_Abonelik.pdf", status: "PENDING" }
+];
+
+const defaultPackages: SubscriptionPackage[] = [
+  { id: 'starter', name: "Aylık Standart Paket", price: 199, durationDays: 30, badge: "Aylık Esnek", subtext: "Küçük ölçekli hukuk ofisleri için ideal", savingsPercent: 0 },
+  { id: 'popular', name: "Yıllık Profesyonel Üyelik", price: 450, durationDays: 365, badge: "En Çok Tercih Edilen", subtext: "Yıllık esnek ödemeyle yüksek tasarruf sağlayın", savingsPercent: 50 },
+  { id: 'advantage', name: "Kurumsal Enterprise Lisans", price: 1250, durationDays: 365, badge: "Kurumsal Özel", subtext: "Ortaklıklar ve Barolar için ideal", savingsPercent: 30 }
+];
+
+const defaultRequests: PaymentRequest[] = [
+  {
+    id: "PAY-101",
+    userId: "user_meltem",
+    fullName: "Av. Meltem Aras",
+    phone: "0532 123 4567",
+    email: "meltem@aras.av.tr",
+    iban: "TR12 3456 ... 89",
+    packageId: "starter",
+    amount: 199.00,
+    receiptUrl: "MeltemAras_Aylik_Standart.pdf",
+    description: "Aylık standart üyelik ödemesi",
+    status: "pending",
+    createdAt: "13.07.2026 14:32",
+    ipAddress: "192.168.1.15",
+  },
+  {
+    id: "PAY-102",
+    userId: "user_selim",
+    fullName: "Av. Selim Yazıcı",
+    phone: "0544 987 6543",
+    email: "selim@yazici-hukuk.av.tr",
+    iban: "TR96 0006 ... 01",
+    packageId: "popular",
+    amount: 450.00,
+    receiptUrl: "SelimYazici_Yillik_Abonelik.pdf",
+    description: "Yıllık profesyonel paket havalesi",
+    status: "pending",
+    createdAt: "12.07.2026 11:15",
+    ipAddress: "192.168.1.42",
+  }
 ];
 
 const defaultTickets: SupportTicket[] = [
@@ -799,6 +890,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [campaigns, setCampaigns] = useState<Campaign[]>(defaultCampaigns);
   const [lawsAndPrecedents, setLawsAndPrecedents] = useState<LawDatabaseItem[]>(defaultLawsAndPrecedents);
   const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>(defaultSecurityLogs);
+  
+  // Premium V3.0 States
+  const [subscriptionPackages, setSubscriptionPackages] = useState<SubscriptionPackage[]>(defaultPackages);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>(defaultRequests);
+  const [userSubscriptionDetails, setUserSubscriptionDetails] = useState<UserSubscriptionDetails | null>(null);
+  
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
@@ -846,6 +943,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storedEvents = localStorage.getItem('al_events');
       const storedReceipts = localStorage.getItem('al_receipts');
       const storedTickets = localStorage.getItem('al_tickets');
+      const storedRequests = localStorage.getItem('al_payment_requests');
+      const storedDetails = localStorage.getItem('al_subscription_details');
 
       // Enterprise Loads
       const storedAdminUsers = localStorage.getItem('al_admin_users');
@@ -858,13 +957,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storedTokens = localStorage.getItem('al_gemini_tokens');
       const storedBackup = localStorage.getItem('al_backup_date');
 
-      if (storedUser) setUserProfile(JSON.parse(storedUser));
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUserProfile(parsedUser);
+        if (!storedDetails) {
+          setUserSubscriptionDetails({
+            userId: parsedUser.id.toString(),
+            isPremium: parsedUser.isPremium,
+            packageId: parsedUser.isPremium ? 'popular' : undefined,
+            startDate: parsedUser.isPremium ? "15.07.2026" : undefined,
+            endDate: parsedUser.isPremium ? "15.07.2027" : undefined,
+            activatedAt: parsedUser.isPremium ? "15.07.2026" : undefined
+          });
+        }
+      }
       if (storedCases) setCaseFiles(JSON.parse(storedCases));
       if (storedDocs) setDocuments(JSON.parse(storedDocs));
       if (storedChats) setChatMessages(JSON.parse(storedChats));
       if (storedEvents) setCalendarEvents(JSON.parse(storedEvents));
       if (storedReceipts) setPaymentReceipts(JSON.parse(storedReceipts));
       if (storedTickets) setSupportTickets(JSON.parse(storedTickets));
+      if (storedRequests) setPaymentRequests(JSON.parse(storedRequests));
+      if (storedDetails) setUserSubscriptionDetails(JSON.parse(storedDetails));
 
       if (storedAdminUsers) setAdminUsers(JSON.parse(storedAdminUsers));
       if (storedCoupons) setCoupons(JSON.parse(storedCoupons));
@@ -917,6 +1031,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('al_receipts', JSON.stringify(paymentReceipts));
     }
   }, [paymentReceipts, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_payment_requests', JSON.stringify(paymentRequests));
+    }
+  }, [paymentRequests, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_subscription_details', JSON.stringify(userSubscriptionDetails));
+    }
+  }, [userSubscriptionDetails, hydrated]);
 
   useEffect(() => {
     if (hydrated) {
@@ -1191,35 +1317,163 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCalendarEvents(prev => [...prev, newEvent]);
   };
 
-  const submitPaymentReceipt = (senderName: string, email: string, iban: string, amount: string, fileName: string) => {
-    const newReceipt: PaymentReceipt = {
-      id: Date.now(),
-      senderName,
+  const submitPaymentRequest = (
+    fullName: string,
+    phone: string,
+    email: string,
+    iban: string,
+    packageId: SubscriptionPackageId,
+    amount: number,
+    receiptUrl: string,
+    description?: string
+  ) => {
+    const newId = "PAY-" + Date.now().toString().slice(-6);
+    const newRequest: PaymentRequest = {
+      id: newId,
+      userId: userProfile.id.toString(),
+      fullName,
+      phone,
       email,
       iban,
+      packageId,
       amount,
+      receiptUrl,
+      description: description || `${packageId === 'starter' ? 'Aylık Standart' : packageId === 'popular' ? 'Yıllık Profesyonel' : 'Kurumsal Enterprise'} Paket`,
+      status: 'pending',
+      createdAt: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      ipAddress: "192.168.1." + Math.floor(Math.random() * 253 + 2),
+    };
+
+    setPaymentRequests(prev => [newRequest, ...prev]);
+
+    // Backward compatibility: also insert into legacy paymentReceipts state
+    const legacyReceipt: PaymentReceipt = {
+      id: Date.now(),
+      senderName: fullName,
+      email,
+      iban,
+      amount: "₺" + amount.toFixed(2),
       date: new Date().toLocaleDateString('tr-TR'),
-      receiptFileName: fileName,
+      receiptFileName: receiptUrl,
       status: 'PENDING'
     };
-    setPaymentReceipts(prev => [newReceipt, ...prev]);
+    setPaymentReceipts(prev => [legacyReceipt, ...prev]);
+
+    addSecurityLog('SENSITIVE_ACCESS', `Havale dekontu yüklendi. Paket: ${packageId}, Tutar: ₺${amount}. Gönderen: ${fullName}`, 'INFO');
+    showToast("Havale dekontunuz başarıyla yüklendi. Onay süreci başlatıldı.", "success");
   };
 
-  const approvePaymentReceipt = (id: number) => {
-    setPaymentReceipts(prev => prev.map(rec => {
-      if (rec.id === id) {
-        // Find if this is the current user or update user premium status
-        if (rec.email === userProfile.email) {
+  const approvePaymentRequest = (id: string, adminNotes?: string) => {
+    setPaymentRequests(prev => prev.map(req => {
+      if (req.id === id) {
+        const isSelf = req.email === userProfile.email || req.userId === userProfile.id.toString();
+        if (isSelf) {
           setUserProfile(p => ({ ...p, isPremium: true }));
+          setUserSubscriptionDetails({
+            userId: req.userId,
+            isPremium: true,
+            packageId: req.packageId,
+            startDate: new Date().toLocaleDateString('tr-TR'),
+            endDate: new Date(Date.now() + (req.packageId === 'starter' ? 30 : 365) * 24 * 60 * 60 * 1000).toLocaleDateString('tr-TR'),
+            activatedAt: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+          });
         }
+        
+        // Update the adminUsers list if the user is there
+        setAdminUsers(uList => uList.map(u => {
+          if (u.email === req.email) {
+            return { ...u, plan: req.packageId === 'starter' ? 'MONTHLY' as const : req.packageId === 'popular' ? 'ANNUAL' as const : 'CORPORATE' as const, active: true };
+          }
+          return u;
+        }));
+
+        return {
+          ...req,
+          status: 'approved' as const,
+          processedAt: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          adminNotes: adminNotes || "Yönetici tarafından onaylandı."
+        };
+      }
+      return req;
+    }));
+
+    // Legacy sync
+    setPaymentReceipts(prev => prev.map(rec => {
+      const match = paymentRequests.find(r => r.id === id);
+      if (match && rec.email === match.email && rec.status === 'PENDING') {
         return { ...rec, status: 'APPROVED' as const };
       }
       return rec;
     }));
+
+    addSecurityLog('SENSITIVE_ACCESS', `Ödeme talebi (ID: ${id}) yönetici tarafından onaylandı.`, 'WARNING');
+    showToast("Ödeme başarıyla onaylandı ve üyelik aktif edildi.", "success");
+  };
+
+  const rejectPaymentRequest = (id: string, adminNotes?: string) => {
+    setPaymentRequests(prev => prev.map(req => {
+      if (req.id === id) {
+        return {
+          ...req,
+          status: 'rejected' as const,
+          processedAt: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          adminNotes: adminNotes || "Dekont geçersiz veya tutar uyuşmuyor."
+        };
+      }
+      return req;
+    }));
+
+    // Legacy sync
+    setPaymentReceipts(prev => prev.map(rec => {
+      const match = paymentRequests.find(r => r.id === id);
+      if (match && rec.email === match.email && rec.status === 'PENDING') {
+        return { ...rec, status: 'REJECTED' as const };
+      }
+      return rec;
+    }));
+
+    addSecurityLog('SENSITIVE_ACCESS', `Ödeme talebi (ID: ${id}) reddedildi. Neden: ${adminNotes}`, 'WARNING');
+    showToast("Ödeme talebi reddedildi.", "error");
+  };
+
+  const submitPaymentReceipt = (senderName: string, email: string, iban: string, amount: string, fileName: string) => {
+    const numericAmount = parseFloat(amount.replace(/[^\d.]/g, '')) || 199;
+    const packageId: SubscriptionPackageId = numericAmount <= 199 ? 'starter' : numericAmount <= 450 ? 'popular' : 'advantage';
+    submitPaymentRequest(senderName, "0500 000 0000", email, iban, packageId, numericAmount, fileName);
+  };
+
+  const approvePaymentReceipt = (id: number) => {
+    const receipt = paymentReceipts.find(r => r.id === id);
+    if (receipt) {
+      const req = paymentRequests.find(r => r.email === receipt.email && r.status === 'pending');
+      if (req) {
+        approvePaymentRequest(req.id);
+      } else {
+        setPaymentReceipts(prev => prev.map(rec => {
+          if (rec.id === id) {
+            if (rec.email === userProfile.email) {
+              setUserProfile(p => ({ ...p, isPremium: true }));
+            }
+            return { ...rec, status: 'APPROVED' as const };
+          }
+          return rec;
+        }));
+        showToast("Ödeme makbuzu onaylandı.", "success");
+      }
+    }
   };
 
   const rejectPaymentReceipt = (id: number) => {
-    setPaymentReceipts(prev => prev.map(rec => rec.id === id ? { ...rec, status: 'REJECTED' as const } : rec));
+    const receipt = paymentReceipts.find(r => r.id === id);
+    if (receipt) {
+      const req = paymentRequests.find(r => r.email === receipt.email && r.status === 'pending');
+      if (req) {
+        rejectPaymentRequest(req.id);
+      } else {
+        setPaymentReceipts(prev => prev.map(rec => rec.id === id ? { ...rec, status: 'REJECTED' as const } : rec));
+        showToast("Ödeme makbuzu reddedildi.", "error");
+      }
+    }
   };
 
   const submitTicket = (title: string, category: string, text: string) => {
@@ -1503,6 +1757,11 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       sessions,
       supportTickets,
       
+      // Premium V3.0 States
+      subscriptionPackages,
+      paymentRequests,
+      userSubscriptionDetails,
+      
       // Enterprise extensions
       adminUsers,
       coupons,
@@ -1552,6 +1811,12 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       submitPaymentReceipt,
       approvePaymentReceipt,
       rejectPaymentReceipt,
+      
+      // Premium V3.0 Methods
+      submitPaymentRequest,
+      approvePaymentRequest,
+      rejectPaymentRequest,
+      
       runAiLegalSearch,
       draftAiPetition,
       runAcademyTeacher,
