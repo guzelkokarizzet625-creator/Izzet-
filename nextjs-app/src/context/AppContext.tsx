@@ -47,7 +47,116 @@ export interface CaseFile {
   category: string;
   date: string;
   description: string;
-  status: 'ACTIVE' | 'ARCHIVED' | 'PENDING';
+  status: 'ACTIVE' | 'ARCHIVED' | 'PENDING' | string;
+  dosyaNo?: string;
+  esasNo?: string;
+  kararNo?: string;
+  uyapNo?: string;
+  mahkeme?: string;
+  mahkemeTuru?: string;
+  daire?: string;
+  hakim?: string;
+  savci?: string;
+  katip?: string;
+  durusmaSalonu?: string;
+  sehir?: string;
+  ilce?: string;
+  davaci?: {
+    adSoyad?: string;
+    tc?: string;
+    telefon?: string;
+    adres?: string;
+    eposta?: string;
+    vekili?: string;
+  };
+  davali?: {
+    adSoyad?: string;
+    tc?: string;
+    telefon?: string;
+    adres?: string;
+    eposta?: string;
+    vekili?: string;
+  };
+  deliller?: Array<{
+    id: number;
+    tur: string;
+    ad: string;
+    aciklama?: string;
+    boyut?: string;
+    tarih?: string;
+  }>;
+  taniklar?: Array<{
+    id: number;
+    isim: string;
+    telefon?: string;
+    adres?: string;
+    etki?: string;
+    guvenPuani?: number;
+  }>;
+  bilirkisiler?: Array<{
+    id: number;
+    alan: string;
+    rapor?: string;
+    durumu?: string;
+  }>;
+  kronoloji?: Array<{
+    id: number;
+    tarih: string;
+    saat?: string;
+    yer?: string;
+    olay: string;
+    belge?: string;
+  }>;
+  masraflar?: {
+    harc?: number;
+    vekalet?: number;
+    kesif?: number;
+    bilirkisi?: number;
+    posta?: number;
+    noter?: number;
+    dosya?: number;
+    ulasim?: number;
+    diger?: number;
+    toplam?: number;
+  };
+  takvim?: {
+    ilkDurusma?: string;
+    sonDurusma?: string;
+    araKarar?: string;
+    sonTarih?: string;
+    zamanasimi?: string;
+    hakDusurucuSure?: string;
+    hatirlatma?: string;
+    googleCalendarSync?: boolean;
+  };
+  aiAnalizi?: {
+    dosyaGucu?: number;
+    riskSkoru?: number;
+    basariOlasiligi?: number;
+    eksikDeliller?: string[];
+    eksikBelgeler?: string[];
+    eksikTaniklar?: string[];
+    celiskiler?: string[];
+    hakimSorulari?: string[];
+    savciSorulari?: string[];
+    karsiTarafStratejisi?: string;
+    toplanacakDeliller?: string[];
+    hazirlanacakDilekceler?: string[];
+  };
+  etiketler?: string[];
+  dosyaKlasorleri?: string[];
+  notlar?: Array<{
+    id: number;
+    metin: string;
+    tip: 'standart' | 'sesli' | 'yildizli' | 'gizli';
+    tarih: string;
+  }>;
+  isCustom?: boolean;
+  versionHistory?: Array<{
+    id: number;
+    timestamp: string;
+    description: string;
+  }>;
 }
 
 export interface LegalDocument {
@@ -285,7 +394,7 @@ interface AppContextType extends AppState {
   togglePremiumRole: () => void;
   toggleTwoFactorAuth: () => void;
   updateSystemConfig: (iban: string, monthly: string, annual: string, corporate: string) => void;
-  addCaseFile: (title: string, clientName: string, category: string, description: string) => void;
+  addCaseFile: (title: string, clientName: string, category: string, description: string, extraFields?: Partial<CaseFile>) => void;
   selectCaseFile: (id: number | null) => void;
   addDocumentToCase: (caseId: number, name: string, contentText: string, fileSize: string) => void;
   analyzeDocRisk: (docId: number) => Promise<void>;
@@ -336,6 +445,26 @@ interface AppContextType extends AppState {
   sendGlobalNotification: (title: string, text: string) => void;
   updateUserRoleAndPlan: (id: number, role: AdminUser['role'], plan: AdminUser['plan'], active: boolean) => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  
+  // Custom Dynamic Admin Lists
+  davaTurleri: string[];
+  addDavaTuru: (val: string) => void;
+  removeDavaTuru: (val: string) => void;
+  mahkemeler: string[];
+  addMahkeme: (val: string) => void;
+  removeMahkeme: (val: string) => void;
+  sehirler: string[];
+  addSehir: (val: string) => void;
+  removeSehir: (val: string) => void;
+  etiketlerState: string[];
+  addEtiketState: (val: string) => void;
+  removeEtiketState: (val: string) => void;
+  belgeTurleri: string[];
+  addBelgeTuru: (val: string) => void;
+  removeBelgeTuru: (val: string) => void;
+  dosyaDurumlari: string[];
+  addDosyaDurumu: (val: string) => void;
+  removeDosyaDurumu: (val: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1022,6 +1151,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userSubscriptionDetails, setUserSubscriptionDetails] = useState<UserSubscriptionDetails | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(defaultBankAccounts);
   const [paymentSettingsHistory, setPaymentSettingsHistory] = useState<any[]>([]);
+
+  // Customizable Admin Lists
+  const [davaTurleri, setDavaTurleri] = useState<string[]>([
+    'İş Hukuku', 'Ceza', 'Aile', 'Boşanma', 'Velayet', 'Nafaka', 'Miras', 'Muris Muvazaası', 'Kira', 'Tahliye', 'Borç', 'İcra', 'İflas', 'Tazminat', 'Sigorta', 'Trafik Kazası', 'Ticaret', 'Şirketler', 'Vergi', 'İdare', 'Anayasa', 'Tüketici', 'KVKK', 'Marka', 'Patent', 'Fikri Haklar', 'Arsa', 'Tapu', 'Kadastro', 'Orman', 'Enerji', 'Bankacılık', 'Sağlık Hukuku', 'Spor Hukuku', 'Uluslararası Hukuk', 'Deniz Hukuku', 'İnsan Hakları'
+  ]);
+  const [mahkemeler, setMahkemeler] = useState<string[]>([
+    'Asliye Hukuk Mahkemesi', 'Asliye Ceza Mahkemesi', 'Ağır Ceza Mahkemesi', 'Aile Mahkemesi', 'İş Mahkemesi', 'Sulh Hukuk Mahkemesi', 'Sulh Ceza Hakimliği', 'Tüketici Mahkemesi', 'Fikri ve Sınai Haklar Mahkemesi', 'İcra Hukuk Mahkemesi', 'İcra Ceza Mahkemesi', 'Ticaret Mahkemesi', 'Vergi Mahkemesi', 'İdare Mahkemesi', 'Bölge Adliye Mahkemesi (İstinaf)', 'Yargıtay', 'Danıştay', 'Anayasa Mahkemesi'
+  ]);
+  const [sehirler, setSehirler] = useState<string[]>([
+    'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Şanlıurfa', 'Kocaeli', 'Mersin', 'Diyarbakır', 'Hatay', 'Manisa', 'Kayseri', 'Samsun', 'Balıkesir', 'Kahramanmaraş', 'Van', 'Aydın'
+  ]);
+  const [etiketlerState, setEtiketlerState] = useState<string[]>([
+    'Acil', 'Çok Acil', 'Bekliyor', 'Duruşma Yakın', 'Eksik Evrak', 'Bilirkişide', 'İstinafta', 'Temyizde', 'Kapandı', 'Arşiv'
+  ]);
+  const [belgeTurleri, setBelgeTurleri] = useState<string[]>([
+    'PDF', 'Word', 'Excel', 'Fotoğraf', 'Ses', 'Video', 'Noter', 'Tapu', 'HTS', 'SGK', 'Banka', 'Vergi', 'UYAP', 'Mahkeme Kararı', 'Bilirkişi', 'Tanık', 'Keşif'
+  ]);
+  const [dosyaDurumlari, setDosyaDurumlari] = useState<string[]>([
+    'Taslak', 'Aktif', 'Mahkemede', 'Bilirkişide', 'İstinafta', 'Temyizde', 'Karar Verildi', 'Kesinleşti', 'İnfazda', 'Arşiv'
+  ]);
+
+  const addDavaTuru = (val: string) => {
+    if (val && !davaTurleri.includes(val)) {
+      setDavaTurleri(prev => [...prev, val]);
+      showToast(`Yeni dava türü başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeDavaTuru = (val: string) => {
+    setDavaTurleri(prev => prev.filter(v => v !== val));
+    showToast(`Dava türü silindi: ${val}`, 'warning');
+  };
+
+  const addMahkeme = (val: string) => {
+    if (val && !mahkemeler.includes(val)) {
+      setMahkemeler(prev => [...prev, val]);
+      showToast(`Yeni mahkeme başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeMahkeme = (val: string) => {
+    setMahkemeler(prev => prev.filter(v => v !== val));
+    showToast(`Mahkeme silindi: ${val}`, 'warning');
+  };
+
+  const addSehir = (val: string) => {
+    if (val && !sehirler.includes(val)) {
+      setSehirler(prev => [...prev, val]);
+      showToast(`Yeni şehir başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeSehir = (val: string) => {
+    setSehirler(prev => prev.filter(v => v !== val));
+    showToast(`Şehir silindi: ${val}`, 'warning');
+  };
+
+  const addEtiketState = (val: string) => {
+    if (val && !etiketlerState.includes(val)) {
+      setEtiketlerState(prev => [...prev, val]);
+      showToast(`Yeni etiket başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeEtiketState = (val: string) => {
+    setEtiketlerState(prev => prev.filter(v => v !== val));
+    showToast(`Etiket silindi: ${val}`, 'warning');
+  };
+
+  const addBelgeTuru = (val: string) => {
+    if (val && !belgeTurleri.includes(val)) {
+      setBelgeTurleri(prev => [...prev, val]);
+      showToast(`Yeni belge türü başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeBelgeTuru = (val: string) => {
+    setBelgeTurleri(prev => prev.filter(v => v !== val));
+    showToast(`Belge türü silindi: ${val}`, 'warning');
+  };
+
+  const addDosyaDurumu = (val: string) => {
+    if (val && !dosyaDurumlari.includes(val)) {
+      setDosyaDurumlari(prev => [...prev, val]);
+      showToast(`Yeni dosya durumu başarıyla eklendi: ${val}`, 'success');
+    }
+  };
+  const removeDosyaDurumu = (val: string) => {
+    setDosyaDurumlari(prev => prev.filter(v => v !== val));
+    showToast(`Dosya durumu silindi: ${val}`, 'warning');
+  };
   
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
@@ -1119,6 +1334,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (storedCampaigns) setCampaigns(JSON.parse(storedCampaigns));
       if (storedLaws) setLawsAndPrecedents(JSON.parse(storedLaws));
       if (storedLogs) setSecurityLogs(JSON.parse(storedLogs));
+      
+      const storedDavaTurleri = localStorage.getItem('al_dava_turleri');
+      const storedMahkemeler = localStorage.getItem('al_mahkemeler');
+      const storedSehirler = localStorage.getItem('al_sehirler');
+      const storedEtiketler = localStorage.getItem('al_etiketler_state');
+      const storedBelgeTurleri = localStorage.getItem('al_belge_turleri');
+      const storedDosyaDurumlari = localStorage.getItem('al_dosya_durumlari');
+
+      if (storedDavaTurleri) setDavaTurleri(JSON.parse(storedDavaTurleri));
+      if (storedMahkemeler) setMahkemeler(JSON.parse(storedMahkemeler));
+      if (storedSehirler) setSehirler(JSON.parse(storedSehirler));
+      if (storedEtiketler) setEtiketlerState(JSON.parse(storedEtiketler));
+      if (storedBelgeTurleri) setBelgeTurleri(JSON.parse(storedBelgeTurleri));
+      if (storedDosyaDurumlari) setDosyaDurumlari(JSON.parse(storedDosyaDurumlari));
       
       if (storedModel) setGeminiModel(storedModel);
       if (storedTemp) setGeminiTemperature(parseFloat(storedTemp));
@@ -1258,6 +1487,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('al_backup_date', databaseBackupDate);
     }
   }, [databaseBackupDate, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_dava_turleri', JSON.stringify(davaTurleri));
+    }
+  }, [davaTurleri, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_mahkemeler', JSON.stringify(mahkemeler));
+    }
+  }, [mahkemeler, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_sehirler', JSON.stringify(sehirler));
+    }
+  }, [sehirler, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_etiketler_state', JSON.stringify(etiketlerState));
+    }
+  }, [etiketlerState, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_belge_turleri', JSON.stringify(belgeTurleri));
+    }
+  }, [belgeTurleri, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) {
+      localStorage.setItem('al_dosya_durumlari', JSON.stringify(dosyaDurumlari));
+    }
+  }, [dosyaDurumlari, hydrated]);
 
   // --- Handlers ---
   const toggleAdminRole = () => {
@@ -1424,7 +1689,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast("Kullanıcı yetki ve plan ayarları başarıyla güncellendi.", "success");
   };
 
-  const addCaseFile = (title: string, clientName: string, category: string, description: string) => {
+  const addCaseFile = (title: string, clientName: string, category: string, description: string, extraFields?: Partial<CaseFile>) => {
     const newCase: CaseFile = {
       id: Date.now(),
       title,
@@ -1432,7 +1697,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       category,
       date: new Date().toLocaleDateString('tr-TR'),
       description,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      ...extraFields
     };
     setCaseFiles(prev => [...prev, newCase]);
     setSelectedCaseFileId(newCase.id);
@@ -2221,7 +2487,27 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       addSecurityLog,
       clearSecurityLogs,
       sendGlobalNotification,
-      updateUserRoleAndPlan
+      updateUserRoleAndPlan,
+      
+      // Customizable Dynamic Admin Lists
+      davaTurleri,
+      addDavaTuru,
+      removeDavaTuru,
+      mahkemeler,
+      addMahkeme,
+      removeMahkeme,
+      sehirler,
+      addSehir,
+      removeSehir,
+      etiketlerState,
+      addEtiketState,
+      removeEtiketState,
+      belgeTurleri,
+      addBelgeTuru,
+      removeBelgeTuru,
+      dosyaDurumlari,
+      addDosyaDurumu,
+      removeDosyaDurumu
     }}>
       {toast && (
         <div className={`fixed top-5 right-5 z-[9999] max-w-sm w-full bg-midnight border-l-4 ${
