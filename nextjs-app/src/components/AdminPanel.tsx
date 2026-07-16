@@ -26,10 +26,12 @@ import {
   Database,
   RefreshCw,
   Flame,
-  UserCheck
+  UserCheck,
+  Coins,
+  History
 } from 'lucide-react';
 
-type AdminTab = 'stats' | 'users' | 'receipts' | 'coupons' | 'content' | 'security' | 'settings';
+type AdminTab = 'stats' | 'users' | 'receipts' | 'coupons' | 'content' | 'security' | 'settings' | 'payments';
 
 export default function AdminPanel() {
   const { 
@@ -44,6 +46,18 @@ export default function AdminPanel() {
     paymentRequests,
     approvePaymentRequest,
     rejectPaymentRequest,
+    
+    // Enterprise Dynamic Payments Admin
+    bankAccounts,
+    paymentSettingsHistory,
+    addBankAccount,
+    updateBankAccount,
+    deleteBankAccount,
+    setActiveBankAccount,
+    addSubscriptionPackage,
+    updateSubscriptionPackage,
+    deleteSubscriptionPackage,
+    rollbackPaymentSettings,
     
     // Enterprise Extensions
     adminUsers,
@@ -231,8 +245,8 @@ export default function AdminPanel() {
       </div>
 
       {/* Grid Sub-Navigation Tab Panel */}
-      <div className="grid grid-cols-3 sm:grid-cols-7 gap-1.5 p-1 bg-charcoal border border-slateGrey/60 rounded-2xl shadow-inner select-none">
-        {(['stats', 'users', 'receipts', 'coupons', 'content', 'security', 'settings'] as AdminTab[]).map((tab) => {
+      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 p-1 bg-charcoal border border-slateGrey/60 rounded-2xl shadow-inner select-none">
+        {(['stats', 'users', 'receipts', 'coupons', 'content', 'security', 'payments', 'settings'] as AdminTab[]).map((tab) => {
           let label = "Panel";
           let icon = <BarChart3 className="w-3.5 h-3.5" />;
           if (tab === 'stats') { label = "İstatistik"; icon = <BarChart3 className="w-3.5 h-3.5" />; }
@@ -241,6 +255,7 @@ export default function AdminPanel() {
           if (tab === 'coupons') { label = "Kuponlar"; icon = <Ticket className="w-3.5 h-3.5" />; }
           if (tab === 'content') { label = "Mevzuat"; icon = <BookOpen className="w-3.5 h-3.5" />; }
           if (tab === 'security') { label = "Güvenlik"; icon = <Terminal className="w-3.5 h-3.5" />; }
+          if (tab === 'payments') { label = "Ödeme Merkezi"; icon = <Coins className="w-3.5 h-3.5" />; }
           if (tab === 'settings') { label = "Ayarlar"; icon = <Settings2 className="w-3.5 h-3.5" />; }
 
           return (
@@ -917,6 +932,539 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 8. ENTERPRISE PAYMENT MANAGEMENT CENTER */}
+        {activeAdminTab === 'payments' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-midnight/50 p-6 rounded-2xl border border-goldDark/30">
+              <div>
+                <h2 className="text-sm font-black text-goldLight uppercase tracking-wider flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-goldDark" />
+                  Kurumsal Ödeme Sistemi Yönetim Merkezi (SaaS Payment Center)
+                </h2>
+                <p className="text-[10px] text-softGrey mt-1 max-w-2xl leading-relaxed">
+                  Uygulama kodunu değiştirmeden veya yeniden deploy etmeden tüm ödeme sistemini, IBAN adreslerini, paket ücretlerini ve üyelik avantajlarını buradan canlı olarak yönetin. Yapılan her işlem otomatik olarak IP, cihaz ve kimlik bilgileriyle loglanır.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={rollbackPaymentSettings}
+                  disabled={!paymentSettingsHistory || paymentSettingsHistory.length === 0}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
+                    paymentSettingsHistory && paymentSettingsHistory.length > 0
+                      ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
+                      : 'bg-charcoal text-softGrey/40 border-slateGrey/20 cursor-not-allowed'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  <History className="w-4 h-4" />
+                  Son Ayarı Geri Al (Rollback)
+                </button>
+              </div>
+            </div>
+
+            {/* TWO COLUMNS: BANK ACCOUNTS & PACKAGES */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* LEFT COLUMN (LG:7): BANK ACCOUNTS */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* Bank Accounts List */}
+                <div className="bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-4">
+                  <div className="flex justify-between items-center border-b border-slateGrey/30 pb-3">
+                    <h3 className="text-xs font-black text-goldLight uppercase tracking-wider">
+                      Resmi Banka Hesapları ({bankAccounts?.length || 0})
+                    </h3>
+                    <span className="text-[9px] text-softGrey uppercase">CANLI SİSTEM ENTEGRASYONU</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(!bankAccounts || bankAccounts.length === 0) ? (
+                      <p className="text-[10px] text-softGrey text-center py-4">Kayıtlı banka hesabı bulunmuyor. Yeni bir hesap ekleyin.</p>
+                    ) : (
+                      bankAccounts.map((bank) => (
+                        <div 
+                          key={bank.id} 
+                          className={`p-4 rounded-xl border transition-all relative ${
+                            bank.isActive 
+                              ? 'bg-goldDark/5 border-goldDark/60 ring-1 ring-goldDark/20' 
+                              : 'bg-charcoal border-slateGrey/30 hover:border-slateGrey/60'
+                          }`}
+                        >
+                          {bank.isActive && (
+                            <span className="absolute right-3 top-3 bg-gradient-to-r from-goldDark to-amberAccent text-midnight text-[8px] font-black tracking-widest px-2 py-0.5 uppercase rounded">
+                              AKTİF / ALICI
+                            </span>
+                          )}
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-ivory">{bank.bankName}</span>
+                              <span className="text-[9px] text-softGrey bg-slateGrey/20 px-1.5 py-0.5 rounded font-bold">
+                                {bank.branchName || 'Merkez Şube'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 text-[10px] text-softGrey">
+                              <div>
+                                <span className="block text-[8px] uppercase font-bold text-softGrey/70">Hesap Sahibi:</span>
+                                <span className="font-bold text-ivory">{bank.accountHolder}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[8px] uppercase font-bold text-softGrey/70">Hesap / SWIFT:</span>
+                                <span className="font-mono text-ivory">{bank.accountNumber || '-'} / {bank.swiftCode || '-'}</span>
+                              </div>
+                            </div>
+
+                            <div className="bg-charcoal/60 px-3 py-2 rounded-lg border border-slateGrey/30 flex justify-between items-center gap-2">
+                              <div className="font-mono text-[10px] text-goldLight tracking-wider font-bold select-all break-all">
+                                {bank.iban}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(bank.iban);
+                                  showToast("IBAN kopyalandı!", "success");
+                                }}
+                                className="text-[9px] text-softGrey hover:text-goldLight underline font-bold shrink-0"
+                              >
+                                Kopyala
+                              </button>
+                            </div>
+
+                            {bank.description && (
+                              <p className="text-[9px] text-softGrey italic leading-relaxed bg-charcoal/20 p-2 rounded border border-slateGrey/15">
+                                <span className="font-bold text-[8px] uppercase text-goldDark not-italic block mb-0.5">Müşteri Notu:</span>
+                                {bank.description}
+                              </p>
+                            )}
+
+                            {/* Actions on Bank */}
+                            <div className="flex justify-between items-center pt-2 border-t border-slateGrey/15">
+                              <div className="flex gap-2">
+                                {!bank.isActive && (
+                                  <button
+                                    onClick={() => setActiveBankAccount(bank.id)}
+                                    className="bg-goldDark hover:bg-goldLight text-midnight text-[9px] font-black px-2.5 py-1.5 rounded-lg transition-all uppercase tracking-widest"
+                                    style={{ minHeight: '32px' }}
+                                  >
+                                    Ödemeleri Bu Hesaba Yönlendir (Aktif Yap)
+                                  </button>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => deleteBankAccount(bank.id)}
+                                className="text-red-400 hover:text-red-300 text-[9px] font-bold uppercase underline"
+                              >
+                                SİL
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Add Bank Account Form */}
+                <div className="bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-4">
+                  <h3 className="text-xs font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2 flex items-center gap-1.5">
+                    <Plus className="w-4 h-4 text-goldDark" />
+                    Yeni Banka Hesabı Ekle
+                  </h3>
+
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const data = new FormData(form);
+                      addBankAccount({
+                        bankName: data.get('bankName') as string,
+                        accountHolder: data.get('accountHolder') as string,
+                        iban: data.get('iban') as string,
+                        branchName: data.get('branchName') as string,
+                        accountNumber: data.get('accountNumber') as string,
+                        swiftCode: data.get('swiftCode') as string,
+                        description: data.get('description') as string,
+                        isActive: false
+                      });
+                      form.reset();
+                    }}
+                    className="grid grid-cols-2 gap-3 text-xs"
+                  >
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">Banka Adı</label>
+                      <input 
+                        type="text" 
+                        name="bankName" 
+                        required 
+                        placeholder="Örn: Garanti BBVA A.Ş." 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">Alıcı / Hesap Sahibi</label>
+                      <input 
+                        type="text" 
+                        name="accountHolder" 
+                        required 
+                        placeholder="Örn: AL Hukuk Teknolojileri A.Ş." 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">IBAN Adresi</label>
+                      <input 
+                        type="text" 
+                        name="iban" 
+                        required 
+                        placeholder="TR00 0000 0000 0000 0000 0000 00" 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs font-mono text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">Şube Adı</label>
+                      <input 
+                        type="text" 
+                        name="branchName" 
+                        placeholder="Örn: Kadıköy Kurumsal" 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">Hesap Numarası</label>
+                      <input 
+                        type="text" 
+                        name="accountNumber" 
+                        placeholder="Örn: 90123456-501" 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">SWIFT Kodu (Yurtdışı Alıcılar İçin)</label>
+                      <input 
+                        type="text" 
+                        name="swiftCode" 
+                        placeholder="Örn: TGBATR2A" 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs font-mono text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-softGrey uppercase">Müşteri Ödeme Notu</label>
+                      <input 
+                        type="text" 
+                        name="description" 
+                        placeholder="Açıklama alanına yazılacak detaylar" 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory placeholder-softGrey/30 focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="col-span-2 pt-2">
+                      <button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-goldDark to-amberAccent hover:from-goldLight hover:to-amberAccent text-midnight font-black text-[11px] py-2.5 rounded-xl uppercase tracking-widest transition-all"
+                        style={{ minHeight: '44px' }}
+                      >
+                        Banka Hesabını Sisteme Tanımla
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN (LG:5): SUBSCRIPTION PACKAGES */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Packages List */}
+                <div className="bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-4">
+                  <div className="flex justify-between items-center border-b border-slateGrey/30 pb-3">
+                    <h3 className="text-xs font-black text-goldLight uppercase tracking-wider">
+                      Lisans Paketleri ve Ücretleri
+                    </h3>
+                    <span className="text-[9px] text-softGrey uppercase">SATIŞ VE AVANTAJ KONTROLLERİ</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(!subscriptionPackages || subscriptionPackages.length === 0) ? (
+                      <p className="text-[10px] text-softGrey text-center py-4">Kayıtlı lisans paketi bulunmuyor.</p>
+                    ) : (
+                      subscriptionPackages.map((pkg) => (
+                        <div 
+                          key={pkg.id}
+                          className={`p-4 rounded-xl border space-y-3 transition-all ${
+                            pkg.isActive 
+                              ? 'bg-charcoal/80 border-slateGrey/60' 
+                              : 'bg-charcoal/20 border-slateGrey/20 opacity-60'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-xs font-black text-goldLight block">{pkg.name}</span>
+                              <span className="text-[8px] text-softGrey font-mono tracking-widest uppercase block mt-0.5">ID: {pkg.id}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-black text-ivory block">₺{pkg.price}</span>
+                              <span className="text-[9px] text-softGrey block">/ {pkg.durationText}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-[10px] text-softGrey leading-relaxed">{pkg.description}</p>
+
+                          <div className="grid grid-cols-2 gap-2 text-[9px] text-softGrey bg-midnight/40 p-2 rounded border border-slateGrey/15">
+                            {pkg.badge && (
+                              <div>
+                                <span className="block text-[7px] uppercase font-bold">Özel Rozet:</span>
+                                <span className="text-amberAccent font-bold">{pkg.badge}</span>
+                              </div>
+                            )}
+                            {pkg.oldPrice && (
+                              <div>
+                                <span className="block text-[7px] uppercase font-bold">Eski Fiyat:</span>
+                                <span className="line-through">₺{pkg.oldPrice}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="block text-[7px] uppercase font-bold">Görünüm Sırası:</span>
+                              <span className="font-bold">{pkg.sortOrder}</span>
+                            </div>
+                            <div>
+                              <span className="block text-[7px] uppercase font-bold">Durum:</span>
+                              <span className={pkg.isActive ? 'text-successGreen font-bold' : 'text-red-400'}>
+                                {pkg.isActive ? 'Satışta (Aktif)' : 'Gizli (Pasif)'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Inline Quick Edit Price Form */}
+                          <div className="flex gap-2 items-center pt-2 border-t border-slateGrey/15">
+                            <input
+                              type="number"
+                              defaultValue={pkg.price}
+                              placeholder="Fiyat"
+                              onChange={(e) => {
+                                const newPrice = parseFloat(e.target.value);
+                                if (!isNaN(newPrice)) {
+                                  updateSubscriptionPackage(pkg.id, { price: newPrice });
+                                }
+                              }}
+                              className="w-20 bg-midnight border border-slateGrey/40 px-2 py-1 rounded text-[10px] font-bold text-center text-ivory focus:outline-none"
+                              style={{ minHeight: '30px' }}
+                            />
+                            <span className="text-[9px] text-softGrey shrink-0">Hızlı Fiyat Güncelle (₺)</span>
+                            
+                            <div className="flex-1 text-right">
+                              <button
+                                onClick={() => updateSubscriptionPackage(pkg.id, { isActive: !pkg.isActive })}
+                                className={`text-[9px] font-bold uppercase underline mr-3 ${pkg.isActive ? 'text-amberAccent' : 'text-successGreen'}`}
+                              >
+                                {pkg.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+                              </button>
+                              <button
+                                onClick={() => deleteSubscriptionPackage(pkg.id)}
+                                className="text-red-400 hover:text-red-300 text-[9px] font-bold uppercase underline"
+                              >
+                                SİL
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Create Package Form */}
+                <div className="bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-4">
+                  <h3 className="text-xs font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2 flex items-center gap-1.5">
+                    <Plus className="w-4 h-4 text-goldDark" />
+                    Yeni Lisans Paketi Tanımla
+                  </h3>
+
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const data = new FormData(form);
+                      addSubscriptionPackage({
+                        name: data.get('name') as string,
+                        price: parseFloat(data.get('price') as string),
+                        description: data.get('description') as string,
+                        durationText: data.get('durationText') as string,
+                        badge: data.get('badge') as string || undefined,
+                        oldPrice: data.get('oldPrice') ? parseFloat(data.get('oldPrice') as string) : undefined,
+                        discountPercent: data.get('discountPercent') ? parseInt(data.get('discountPercent') as string) : undefined,
+                        sortOrder: parseInt(data.get('sortOrder') as string) || 10,
+                        isActive: true
+                      });
+                      form.reset();
+                    }}
+                    className="space-y-3 text-xs text-softGrey"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Paket İsmi</label>
+                        <input 
+                          type="text" 
+                          name="name" 
+                          required 
+                          placeholder="Örn: 3 Aylık Profesyonel" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Tutar (₺)</label>
+                        <input 
+                          type="number" 
+                          name="price" 
+                          required 
+                          placeholder="Örn: 899" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase">Paket Açıklaması / Avantajlar</label>
+                      <input 
+                        type="text" 
+                        name="description" 
+                        required 
+                        placeholder="Örn: Sınırsız Yargıtay araması ve PDF raporlama içeren plan." 
+                        className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Süre Açıklaması (Müşteri için)</label>
+                        <input 
+                          type="text" 
+                          name="durationText" 
+                          required 
+                          placeholder="Örn: 3 Ay, Tek Sefer, Yıllık" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Özel Rozet / Badge</label>
+                        <input 
+                          type="text" 
+                          name="badge" 
+                          placeholder="Örn: EN POPÜLER, %40 İNDİRİMLİ" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Eski Tutar (₺)</label>
+                        <input 
+                          type="number" 
+                          name="oldPrice" 
+                          placeholder="Örn: 1499" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">İndirim Yüzdesi (%)</label>
+                        <input 
+                          type="number" 
+                          name="discountPercent" 
+                          placeholder="Örn: 40" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase">Sıralama Önceliği</label>
+                        <input 
+                          type="number" 
+                          name="sortOrder" 
+                          placeholder="Örn: 10" 
+                          className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-goldDark to-amberAccent hover:from-goldLight hover:to-amberAccent text-midnight font-black text-[11px] py-2.5 rounded-xl uppercase tracking-widest transition-all mt-2"
+                      style={{ minHeight: '44px' }}
+                    >
+                      Yeni Lisans Paketini Satışa Çıkar
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+            </div>
+
+            {/* AUDIT LOGS & HISTORY VIEW */}
+            <div className="bg-midnight p-6 rounded-2xl border border-slateGrey/40 space-y-4">
+              <h3 className="text-xs font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-3 flex items-center gap-1.5">
+                <History className="w-5 h-5 text-goldDark" />
+                Ödeme Sistemi Değişiklik Geçmişi ve Güvenlik Denetim İzleri (Audit History)
+              </h3>
+              <p className="text-[10px] text-softGrey">
+                Ödeme IBAN'ları ve lisans fiyatlarındaki tüm değişikliklerin geçmişini denetleyin. Geçmiş bir ayara geri dönmek için "Son Ayarı Geri Al" butonunu kullanabilirsiniz.
+              </p>
+
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-2">
+                {(!paymentSettingsHistory || paymentSettingsHistory.length === 0) ? (
+                  <p className="text-[10px] text-softGrey text-center py-4">Kayıtlı sürüm geçmişi bulunmuyor. Değişiklik yaptıkça sürümler burada saklanacaktır.</p>
+                ) : (
+                  paymentSettingsHistory.map((snap, i) => (
+                    <div 
+                      key={snap.id}
+                      className="bg-charcoal/50 p-3 rounded-xl border border-slateGrey/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-[10px] text-softGrey"
+                    >
+                      <div>
+                        <span className="font-bold text-ivory block text-[11px]">Sürüm Snapshot #{paymentSettingsHistory.length - i}</span>
+                        <span className="block mt-0.5">Yönetici: <strong className="text-goldLight">{snap.adminEmail}</strong></span>
+                        <span className="block mt-0.5 text-[9px] text-softGrey/80">Zaman Damgası: {snap.timestamp}</span>
+                      </div>
+                      <div className="flex gap-4 text-[9px] text-softGrey/90">
+                        <div>
+                          <strong className="text-ivory block text-[10px]">Aktif IBAN(lar):</strong>
+                          {(snap.bankAccounts || []).filter((b: any) => b.isActive).map((b: any) => (
+                            <span key={b.id} className="block mt-0.5">{b.bankName} - {b.iban.substring(0, 10)}...</span>
+                          ))}
+                        </div>
+                        <div>
+                          <strong className="text-ivory block text-[10px]">Aktif Paketler:</strong>
+                          {(snap.subscriptionPackages || []).filter((p: any) => p.isActive).map((p: any) => (
+                            <span key={p.id} className="block mt-0.5">{p.name} (₺{p.price})</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
           </div>
         )}
 

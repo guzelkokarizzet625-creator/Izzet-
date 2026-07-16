@@ -40,7 +40,8 @@ export default function CustomerPayment() {
     submitPaymentRequest,
     paymentRequests,
     subscriptionPackages,
-    userSubscriptionDetails
+    userSubscriptionDetails,
+    bankAccounts
   } = useApp();
 
   // Tab State: subscription, plans (checkout), bank, invoices
@@ -60,10 +61,40 @@ export default function CustomerPayment() {
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual' | 'corporate'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<string>('starter');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+
+  // Dynamic active bank accounts states
+  const activeBanks = bankAccounts ? bankAccounts.filter(b => b.isActive) : [];
+  const [selectedBankId, setSelectedBankId] = useState<string>('');
+
+  React.useEffect(() => {
+    if (activeBanks.length > 0 && !activeBanks.some(b => b.id === selectedBankId)) {
+      setSelectedBankId(activeBanks[0].id);
+    }
+  }, [activeBanks, selectedBankId]);
+
+  React.useEffect(() => {
+    const activePkgs = subscriptionPackages ? subscriptionPackages.filter(p => p.isActive) : [];
+    if (activePkgs.length > 0 && !activePkgs.some(p => p.id === selectedPlan)) {
+      setSelectedPlan(activePkgs[0].id);
+    }
+  }, [subscriptionPackages, selectedPlan]);
+
+  const currentBank = activeBanks.find(b => b.id === selectedBankId) || activeBanks[0] || {
+    bankName: "Ziraat Bankası",
+    accountHolder: "AL Hukuk Teknolojileri A.Ş.",
+    iban: userProfile.systemIban || "TR96 0006 2000 0001 2345 6789 01",
+    branchName: "Merkez Şubesi",
+    accountNumber: "1234567-89",
+    swiftCode: "TCZITR2A",
+    description: "Hızlı onay için havale açıklamasına e-posta adresinizi ekleyin.",
+    supportPhone: "0532 123 4567",
+    whatsappNumber: "0532 123 4567",
+    supportEmail: "support@alhukuk.com"
+  };
 
   // Bank Form States
   const [senderName, setSenderName] = useState(userProfile.name);
@@ -84,19 +115,31 @@ export default function CustomerPayment() {
   const [viewingInvoice, setViewingInvoice] = useState<LocalInvoice | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
-  const getPriceOfPlan = (plan: 'monthly' | 'annual' | 'corporate'): number => {
+  const getPriceOfPlan = (plan: string): number => {
+    const pkg = subscriptionPackages ? subscriptionPackages.find(p => p.id === plan) : null;
+    if (pkg) return pkg.price;
     switch (plan) {
-      case 'monthly': return 199;
-      case 'annual': return 450;
-      case 'corporate': return 1250;
+      case 'monthly':
+      case 'starter': return 199;
+      case 'annual':
+      case 'popular': return 450;
+      case 'corporate':
+      case 'advantage': return 1250;
+      default: return 199;
     }
   };
 
-  const getPlanTitle = (plan: 'monthly' | 'annual' | 'corporate'): string => {
+  const getPlanTitle = (plan: string): string => {
+    const pkg = subscriptionPackages ? subscriptionPackages.find(p => p.id === plan) : null;
+    if (pkg) return pkg.name;
     switch (plan) {
-      case 'monthly': return 'Aylık Standart Paket';
-      case 'annual': return 'Yıllık Profesyonel Üyelik';
-      case 'corporate': return 'Kurumsal Enterprise Lisans';
+      case 'monthly':
+      case 'starter': return 'Aylık Standart Paket';
+      case 'annual':
+      case 'popular': return 'Yıllık Profesyonel Üyelik';
+      case 'corporate':
+      case 'advantage': return 'Kurumsal Enterprise Lisans';
+      default: return 'Standart Paket';
     }
   };
 
@@ -188,7 +231,7 @@ export default function CustomerPayment() {
   };
 
   const handleCopyIban = () => {
-    navigator.clipboard.writeText(userProfile.systemIban);
+    navigator.clipboard.writeText(currentBank.iban);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -360,68 +403,42 @@ export default function CustomerPayment() {
         <div className="space-y-6 animate-fadeIn">
           {/* Plan Comparison Matrix */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Monthly */}
-            <div 
-              onClick={() => setSelectedPlan('monthly')}
-              className={`bg-midnight/70 p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden ${
-                selectedPlan === 'monthly' ? 'border-goldDark ring-1 ring-goldDark/30' : 'border-slateGrey/40 hover:border-slateGrey/80'
-              }`}
-            >
-              <div>
-                <span className="text-[9px] text-softGrey font-black uppercase tracking-wider block">Aylık Standart</span>
-                <h4 className="text-xl font-black text-goldLight mt-1">{userProfile.premiumPriceMonthly} <span className="text-xs font-normal text-softGrey">/ Ay</span></h4>
-                <p className="text-[10px] text-softGrey leading-relaxed mt-2">Küçük ölçekli hukuk ofisleri için ideal, her ay esnek ve taahhütsüz yenilenen plan.</p>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-goldLight font-bold">
-                <div className={`w-4 h-4 rounded-full border border-goldDark/50 flex items-center justify-center shrink-0 ${selectedPlan === 'monthly' ? 'bg-goldDark text-midnight' : ''}`}>
-                  {selectedPlan === 'monthly' && <Check className="w-3 h-3" />}
+            {(subscriptionPackages || []).filter(p => p.isActive).map((pkg) => {
+              const isSelected = selectedPlan === pkg.id;
+              return (
+                <div 
+                  key={pkg.id}
+                  onClick={() => setSelectedPlan(pkg.id)}
+                  className={`bg-midnight/70 p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                    isSelected ? 'border-goldDark ring-2 ring-goldDark/30' : 'border-slateGrey/40 hover:border-slateGrey/80'
+                  }`}
+                >
+                  {pkg.badge && (
+                    <span className="absolute right-0 top-0 bg-gradient-to-r from-goldDark to-amberAccent text-midnight text-[8px] font-black tracking-widest px-3 py-1 uppercase rounded-bl-lg">
+                      {pkg.badge}
+                    </span>
+                  )}
+                  <div>
+                    <span className="text-[9px] text-softGrey font-black uppercase tracking-wider block">{pkg.name}</span>
+                    <h4 className="text-xl font-black text-goldLight mt-1">
+                      ₺{pkg.price} <span className="text-xs font-normal text-softGrey">/ {pkg.durationText}</span>
+                    </h4>
+                    {pkg.oldPrice && (
+                      <span className="text-[10px] text-softGrey/60 line-through block mt-0.5">
+                        Eski Fiyat: ₺{pkg.oldPrice} {pkg.discountPercent && `(-%${pkg.discountPercent})`}
+                      </span>
+                    )}
+                    <p className="text-[10px] text-softGrey leading-relaxed mt-2">{pkg.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-goldLight font-bold">
+                    <div className={`w-4 h-4 rounded-full border border-goldDark/50 flex items-center justify-center shrink-0 ${isSelected ? 'bg-goldDark text-midnight' : ''}`}>
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </div>
+                    <span>Bu Paketi Seç</span>
+                  </div>
                 </div>
-                <span>Bu Paketi Seç</span>
-              </div>
-            </div>
-
-            {/* Annual */}
-            <div 
-              onClick={() => setSelectedPlan('annual')}
-              className={`bg-midnight/70 p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden ${
-                selectedPlan === 'annual' ? 'border-goldDark ring-2 ring-goldDark/30' : 'border-slateGrey/40 hover:border-slateGrey/80'
-              }`}
-            >
-              <span className="absolute right-0 top-0 bg-gradient-to-r from-goldDark to-amberAccent text-midnight text-[8px] font-black tracking-widest px-3 py-1 uppercase rounded-bl-lg">
-                %50 İNDİRİMLİ
-              </span>
-              <div>
-                <span className="text-[9px] text-softGrey font-black uppercase tracking-wider block">Yıllık Profesyonel</span>
-                <h4 className="text-xl font-black text-goldLight mt-1">{userProfile.premiumPriceAnnual} <span className="text-xs font-normal text-softGrey">/ Tek Sefer</span></h4>
-                <p className="text-[10px] text-softGrey leading-relaxed mt-2">Yıllık tek çekim ödemeyle yüksek tasarruf sağlayın, kesintisiz tüm yapay zekâyı kullanın.</p>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-goldLight font-bold">
-                <div className={`w-4 h-4 rounded-full border border-goldDark/50 flex items-center justify-center shrink-0 ${selectedPlan === 'annual' ? 'bg-goldDark text-midnight' : ''}`}>
-                  {selectedPlan === 'annual' && <Check className="w-3 h-3" />}
-                </div>
-                <span>Bu Paketi Seç</span>
-              </div>
-            </div>
-
-            {/* Corporate */}
-            <div 
-              onClick={() => setSelectedPlan('corporate')}
-              className={`bg-midnight/70 p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden ${
-                selectedPlan === 'corporate' ? 'border-goldDark ring-1 ring-goldDark/30' : 'border-slateGrey/40 hover:border-slateGrey/80'
-              }`}
-            >
-              <div>
-                <span className="text-[9px] text-softGrey font-black uppercase tracking-wider block">Kurumsal Lisans</span>
-                <h4 className="text-xl font-black text-goldLight mt-1">{userProfile.premiumPriceCorporate} <span className="text-xs font-normal text-softGrey">/ Yıllık</span></h4>
-                <p className="text-[10px] text-softGrey leading-relaxed mt-2">Geniş kadrolu ortaklıklar ve barolar için ideal, çoklu eşzamanlı erişim sağlayan paket.</p>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-goldLight font-bold">
-                <div className={`w-4 h-4 rounded-full border border-goldDark/50 flex items-center justify-center shrink-0 ${selectedPlan === 'corporate' ? 'bg-goldDark text-midnight' : ''}`}>
-                  {selectedPlan === 'corporate' && <Check className="w-3 h-3" />}
-                </div>
-                <span>Bu Paketi Seç</span>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* Checkout Checkout Forms */}
@@ -603,15 +620,47 @@ export default function CustomerPayment() {
               Banka Havale / EFT Ödeme Adımları
             </h3>
 
+            {activeBanks.length > 1 && (
+              <div className="space-y-2">
+                <span className="text-[9px] font-black text-softGrey uppercase tracking-wider block">Ödeme Yapılacak Bankayı Seçin:</span>
+                <div className="flex flex-wrap gap-2">
+                  {activeBanks.map((bank) => (
+                    <button
+                      key={bank.id}
+                      onClick={() => setSelectedBankId(bank.id)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                        selectedBankId === bank.id 
+                          ? 'bg-goldDark/20 border-goldDark text-goldLight' 
+                          : 'bg-charcoal border-slateGrey/30 text-softGrey hover:border-slateGrey/60'
+                      }`}
+                      style={{ minHeight: '34px' }}
+                    >
+                      {bank.bankName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4 text-xs text-softGrey leading-relaxed">
-              <p>Ödemenizi internet bankacılığı aracılığıyla aşağıdaki resmi IBAN adresine gönderin. Alıcı adı olarak <strong>"AL Hukuk Teknolojileri A.Ş."</strong> yazılmalıdır.</p>
+              <p>Ödemenizi internet bankacılığı aracılığıyla aşağıdaki resmi IBAN adresine gönderin. Alıcı adı olarak <strong>"{currentBank.accountHolder || 'AL Hukuk Teknolojileri A.Ş.'}"</strong> yazılmalıdır.</p>
               
               <div className="bg-charcoal p-4 rounded-xl border border-slateGrey/40 space-y-2">
-                <span className="text-[10px] text-softGrey uppercase block">Resmi IBAN Adresi:</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-goldLight uppercase">{currentBank.bankName}</span>
+                  {currentBank.branchName && (
+                    <span className="text-[9px] text-softGrey">{currentBank.branchName} Şubesi</span>
+                  )}
+                </div>
                 <div className="flex justify-between items-center gap-3">
-                  <span className="text-xs font-mono font-bold text-goldLight tracking-wider break-all">{userProfile.systemIban}</span>
+                  <span className="text-xs font-mono font-bold text-goldLight tracking-wider break-all">{currentBank.iban}</span>
                   <button
-                    onClick={handleCopyIban}
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentBank.iban);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                      showToast("IBAN kopyalandı!", "success");
+                    }}
                     className="text-softGrey hover:text-goldLight p-2 rounded-lg bg-slateGrey/30 hover:bg-slateGrey/50 transition-all shrink-0"
                     title="IBAN Kopyala"
                     style={{ minHeight: '40px', minWidth: '40px' }}
@@ -621,10 +670,34 @@ export default function CustomerPayment() {
                 </div>
               </div>
 
+              {currentBank.description && (
+                <div className="bg-charcoal/50 p-3 rounded-xl border border-slateGrey/30 text-[10px] text-softGrey/90">
+                  <span className="font-bold text-goldLight block uppercase mb-1">Açıklama / Not:</span>
+                  {currentBank.description}
+                </div>
+              )}
+
               <div className="bg-charcoal/30 p-4 border border-slateGrey/30 rounded-xl space-y-2 text-[10px]">
                 <strong className="text-goldLight uppercase block">⚠️ ÖNEMLİ AÇIKLAMA NOTU:</strong>
                 <p>Transfer yaparken açıklama kısmına mutlaka sisteme kayıtlı e-posta adresinizi (<strong className="text-ivory">{userProfile.email}</strong>) yazın. Bu, ödemenizin faturanızla eşleştirilmesini hızlandıracaktır.</p>
               </div>
+
+              {(currentBank.swiftCode || currentBank.accountNumber) && (
+                <div className="grid grid-cols-2 gap-3 text-[10px] bg-charcoal/20 p-3 rounded-xl border border-slateGrey/30">
+                  {currentBank.accountNumber && (
+                    <div>
+                      <span className="text-softGrey block">Hesap No:</span>
+                      <strong className="text-ivory font-mono">{currentBank.accountNumber}</strong>
+                    </div>
+                  )}
+                  {currentBank.swiftCode && (
+                    <div>
+                      <span className="text-softGrey block">SWIFT Kodu:</span>
+                      <strong className="text-ivory font-mono">{currentBank.swiftCode}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -680,9 +753,11 @@ export default function CustomerPayment() {
                     onChange={e => setBankAmount(e.target.value)}
                     className="w-full bg-charcoal border border-slateGrey/50 px-3 py-2 rounded-xl text-xs text-ivory focus:outline-none h-10"
                   >
-                    <option value="₺199.00">Aylık Standart - ₺199.00</option>
-                    <option value="₺450.00">Yıllık Profesyonel - ₺450.00</option>
-                    <option value="₺1,250.00">Kurumsal Lisans - ₺1,250.00</option>
+                    {(subscriptionPackages || []).filter(p => p.isActive).map(p => (
+                      <option key={p.id} value={`₺${p.price.toFixed(2)}`}>
+                        {p.name} - ₺{p.price.toFixed(2)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-1">

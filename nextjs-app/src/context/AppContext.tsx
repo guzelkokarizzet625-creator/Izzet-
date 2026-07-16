@@ -15,6 +15,7 @@ import {
   setDoc, 
   getDoc,
   updateDoc,
+  onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -108,17 +109,41 @@ export interface SupportTicket {
 }
 
 // --- NEW PREMIUM PAYMENT & SUBSCRIPTION TIERS V3.0 ---
-export type SubscriptionPackageId = 'starter' | 'popular' | 'advantage';
+export type SubscriptionPackageId = string;
 export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  logoUrl?: string;
+  accountHolder: string;
+  iban: string;
+  branchName?: string;
+  accountNumber?: string;
+  swiftCode?: string;
+  description?: string;
+  qrCodeUrl?: string;
+  supportPhone?: string;
+  whatsappNumber?: string;
+  supportEmail?: string;
+  isActive: boolean;
+}
+
 export interface SubscriptionPackage {
-  id: SubscriptionPackageId;
+  id: string;
   name: string;
-  durationDays: number;
+  durationDays: number | string;
+  durationText: string;
   price: number;
+  oldPrice?: number;
+  discountPercent?: number;
   badge?: string;
-  subtext?: string;
-  savingsPercent?: number;
+  description: string;
+  color: string;
+  iconName: string;
+  isFeatured: boolean;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 export interface PaymentRequest {
@@ -222,6 +247,8 @@ interface AppState {
   subscriptionPackages: SubscriptionPackage[];
   paymentRequests: PaymentRequest[];
   userSubscriptionDetails: UserSubscriptionDetails | null;
+  bankAccounts: BankAccount[];
+  paymentSettingsHistory: any[];
   
   // Configs
   geminiModel: string;
@@ -273,6 +300,16 @@ interface AppContextType extends AppState {
   submitPaymentRequest: (fullName: string, phone: string, email: string, iban: string, packageId: SubscriptionPackageId, amount: number, receiptUrl: string, description?: string) => void;
   approvePaymentRequest: (id: string, adminNotes?: string) => void;
   rejectPaymentRequest: (id: string, adminNotes?: string) => void;
+  
+  // Premium V3.0 Enterprise Payments Admin Functions
+  addBankAccount: (bank: Omit<BankAccount, 'id'>) => void;
+  updateBankAccount: (id: string, bank: Partial<BankAccount>) => void;
+  deleteBankAccount: (id: string) => void;
+  setActiveBankAccount: (id: string) => void;
+  addSubscriptionPackage: (pkg: Omit<SubscriptionPackage, 'id'>) => void;
+  updateSubscriptionPackage: (id: string, pkg: Partial<SubscriptionPackage>) => void;
+  deleteSubscriptionPackage: (id: string) => void;
+  rollbackPaymentSettings: () => void;
   
   runAiLegalSearch: (query: string) => Promise<void>;
   draftAiPetition: (title: string, details: string) => Promise<void>;
@@ -398,10 +435,98 @@ const defaultReceipts: PaymentReceipt[] = [
   { id: 102, senderName: "Av. Selim Yazıcı", email: "selim@yazici-hukuk.av.tr", iban: "TR96 0006 ... 01", amount: "₺450.00", date: "12.07.2026", receiptFileName: "SelimYazici_Yillik_Abonelik.pdf", status: "PENDING" }
 ];
 
+const defaultBankAccounts: BankAccount[] = [
+  {
+    id: 'bank-ziraat',
+    bankName: "Ziraat Bankası",
+    accountHolder: "AL Hukuk Teknolojileri A.Ş.",
+    iban: "TR96 0006 2000 0001 2345 6789 01",
+    branchName: "Merkez Şube",
+    accountNumber: "1234567-89",
+    swiftCode: "TCZITR2A",
+    description: "Hızlı onay için havale açıklamasına sistem e-postanızı eklemeyi unutmayın.",
+    supportPhone: "0532 123 4567",
+    whatsappNumber: "0532 123 4567",
+    supportEmail: "destek@alhukuk.com",
+    isActive: true
+  },
+  {
+    id: 'bank-vakif',
+    bankName: "Vakıfbank",
+    accountHolder: "AL Hukuk Teknolojileri A.Ş.",
+    iban: "TR54 0001 5000 0001 9876 5432 02",
+    branchName: "Levent Şube",
+    accountNumber: "9876543-21",
+    swiftCode: "VAKFTR2B",
+    description: "Devlet bankası ile güvenli ve hızlı ödeme.",
+    supportPhone: "0532 123 4567",
+    whatsappNumber: "0532 123 4567",
+    supportEmail: "destek@alhukuk.com",
+    isActive: false
+  },
+  {
+    id: 'bank-akbank',
+    bankName: "Akbank",
+    accountHolder: "AL Hukuk Teknolojileri A.Ş.",
+    iban: "TR12 0004 6000 0001 1122 3344 03",
+    branchName: "Maslak Şube",
+    accountNumber: "1122334-45",
+    swiftCode: "AKBKTX2C",
+    description: "Özel banka ödeme kanalı.",
+    supportPhone: "0532 123 4567",
+    whatsappNumber: "0532 123 4567",
+    supportEmail: "destek@alhukuk.com",
+    isActive: false
+  }
+];
+
 const defaultPackages: SubscriptionPackage[] = [
-  { id: 'starter', name: "Aylık Standart Paket", price: 199, durationDays: 30, badge: "Aylık Esnek", subtext: "Küçük ölçekli hukuk ofisleri için ideal", savingsPercent: 0 },
-  { id: 'popular', name: "Yıllık Profesyonel Üyelik", price: 450, durationDays: 365, badge: "En Çok Tercih Edilen", subtext: "Yıllık esnek ödemeyle yüksek tasarruf sağlayın", savingsPercent: 50 },
-  { id: 'advantage', name: "Kurumsal Enterprise Lisans", price: 1250, durationDays: 365, badge: "Kurumsal Özel", subtext: "Ortaklıklar ve Barolar için ideal", savingsPercent: 30 }
+  {
+    id: 'starter',
+    name: "Aylık Standart Paket",
+    durationDays: 30,
+    durationText: "30 Gün",
+    price: 199,
+    badge: "Popüler",
+    description: "Küçük ölçekli hukuk ofisleri için ideal, her ay esnek ve taahhütsüz yenilenen plan.",
+    color: "blue",
+    iconName: "Star",
+    isFeatured: false,
+    sortOrder: 1,
+    isActive: true
+  },
+  {
+    id: 'popular',
+    name: "Yıllık Profesyonel Üyelik",
+    durationDays: 365,
+    durationText: "365 Gün",
+    price: 450,
+    oldPrice: 900,
+    discountPercent: 50,
+    badge: "En Çok Tercih Edilen",
+    description: "Yıllık tek çekim ödemeyle yüksek tasarruf sağlayın, kesintisiz tüm yapay zekâyı kullanın.",
+    color: "gold",
+    iconName: "Sparkles",
+    isFeatured: true,
+    sortOrder: 2,
+    isActive: true
+  },
+  {
+    id: 'advantage',
+    name: "Kurumsal Enterprise Lisans",
+    durationDays: 365,
+    durationText: "Kurumsal / Sınırsız",
+    price: 1250,
+    oldPrice: 1785,
+    discountPercent: 30,
+    badge: "Kurumsal Özel",
+    description: "Geniş kadrolu ortaklıklar ve barolar için ideal, çoklu eşzamanlı erişim sağlayan paket.",
+    color: "purple",
+    iconName: "Shield",
+    isFeatured: false,
+    sortOrder: 3,
+    isActive: true
+  }
 ];
 
 const defaultRequests: PaymentRequest[] = [
@@ -895,6 +1020,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [subscriptionPackages, setSubscriptionPackages] = useState<SubscriptionPackage[]>(defaultPackages);
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>(defaultRequests);
   const [userSubscriptionDetails, setUserSubscriptionDetails] = useState<UserSubscriptionDetails | null>(null);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(defaultBankAccounts);
+  const [paymentSettingsHistory, setPaymentSettingsHistory] = useState<any[]>([]);
   
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
@@ -980,6 +1107,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (storedRequests) setPaymentRequests(JSON.parse(storedRequests));
       if (storedDetails) setUserSubscriptionDetails(JSON.parse(storedDetails));
 
+      const storedBanks = localStorage.getItem('al_bank_accounts');
+      const storedPkgs = localStorage.getItem('al_subscription_packages');
+      const storedHist = localStorage.getItem('al_payment_settings_history');
+      if (storedBanks) setBankAccounts(JSON.parse(storedBanks));
+      if (storedPkgs) setSubscriptionPackages(JSON.parse(storedPkgs));
+      if (storedHist) setPaymentSettingsHistory(JSON.parse(storedHist));
+
       if (storedAdminUsers) setAdminUsers(JSON.parse(storedAdminUsers));
       if (storedCoupons) setCoupons(JSON.parse(storedCoupons));
       if (storedCampaigns) setCampaigns(JSON.parse(storedCampaigns));
@@ -993,6 +1127,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       setHydrated(true);
     }
+  }, []);
+
+  // Realtime synchronization with Firestore for enterprise payment settings
+  useEffect(() => {
+    let unsub = () => {};
+    try {
+      unsub = onSnapshot(doc(db, "system_configs", "payment_settings"), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.bankAccounts) {
+            setBankAccounts(data.bankAccounts);
+            const activeBank = data.bankAccounts.find((b: any) => b.isActive);
+            if (activeBank) {
+              setUserProfile(prev => ({ ...prev, systemIban: activeBank.iban }));
+            }
+          }
+          if (data.subscriptionPackages) {
+            setSubscriptionPackages(data.subscriptionPackages);
+          }
+          if (data.settingsHistory) {
+            setPaymentSettingsHistory(data.settingsHistory);
+          }
+        }
+      }, (error) => {
+        console.warn("Firestore realtime snapshot failed (using localStorage/local state):", error);
+      });
+    } catch (e) {
+      console.warn("Firestore realtime setup failed (using localStorage/local state):", e);
+    }
+    return () => unsub();
   }, []);
 
   // Save states on change (only after hydration)
@@ -1315,6 +1479,211 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       location
     };
     setCalendarEvents(prev => [...prev, newEvent]);
+  };
+
+  const saveSettingsToDbAndHistory = async (newBanks: BankAccount[], newPackages: SubscriptionPackage[]) => {
+    const timestamp = new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const snapshot = {
+      id: 'snap-' + Date.now(),
+      timestamp,
+      bankAccounts: newBanks,
+      subscriptionPackages: newPackages,
+      adminEmail: userProfile.email || 'Admin',
+    };
+
+    setBankAccounts(newBanks);
+    setSubscriptionPackages(newPackages);
+    setPaymentSettingsHistory(prev => {
+      const updated = [snapshot, ...prev].slice(0, 20);
+      localStorage.setItem('al_payment_settings_history', JSON.stringify(updated));
+      return updated;
+    });
+
+    localStorage.setItem('al_bank_accounts', JSON.stringify(newBanks));
+    localStorage.setItem('al_subscription_packages', JSON.stringify(newPackages));
+
+    try {
+      await setDoc(doc(db, "system_configs", "payment_settings"), {
+        bankAccounts: newBanks,
+        subscriptionPackages: newPackages,
+        settingsHistory: [snapshot, ...paymentSettingsHistory].slice(0, 20)
+      });
+    } catch (e) {
+      console.warn("Firestore save failed during settings update:", e);
+    }
+  };
+
+  const addBankAccount = (bank: Omit<BankAccount, 'id'>) => {
+    const newBank: BankAccount = {
+      ...bank,
+      id: 'bank-' + Date.now()
+    };
+    const updated = [...bankAccounts, newBank];
+    saveSettingsToDbAndHistory(updated, subscriptionPackages);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Yeni Banka Hesabı Eklendi: ${bank.bankName} (${bank.iban}). Ekleyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'WARNING'
+    );
+    showToast(`${bank.bankName} hesabı başarıyla eklendi.`, "success");
+  };
+
+  const updateBankAccount = (id: string, bankFields: Partial<BankAccount>) => {
+    const updated = bankAccounts.map(b => {
+      if (b.id === id) {
+        return { ...b, ...bankFields };
+      }
+      return b;
+    });
+    saveSettingsToDbAndHistory(updated, subscriptionPackages);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Banka Hesabı Güncellendi (ID: ${id}). Değişiklikler: ${JSON.stringify(bankFields)}. Güncelleyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'WARNING'
+    );
+    showToast("Banka hesabı başarıyla güncellendi.", "success");
+  };
+
+  const deleteBankAccount = (id: string) => {
+    const target = bankAccounts.find(b => b.id === id);
+    if (!target) return;
+    const updated = bankAccounts.filter(b => b.id !== id);
+    saveSettingsToDbAndHistory(updated, subscriptionPackages);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Banka Hesabı Silindi: ${target.bankName} (${target.iban}). Sileyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'CRITICAL'
+    );
+    showToast("Banka hesabı sistemden kaldırıldı.", "warning");
+  };
+
+  const setActiveBankAccount = (id: string) => {
+    const target = bankAccounts.find(b => b.id === id);
+    if (!target) return;
+    const updated = bankAccounts.map(b => ({
+      ...b,
+      isActive: b.id === id
+    }));
+    
+    setUserProfile(prev => ({
+      ...prev,
+      systemIban: target.iban
+    }));
+
+    saveSettingsToDbAndHistory(updated, subscriptionPackages);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Aktif Banka Hesabı Değiştirildi. Yeni Aktif: ${target.bankName} (${target.iban}). Güncelleyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'WARNING'
+    );
+    showToast(`Aktif banka hesabı ${target.bankName} olarak güncellendi. Tüm kullanıcılar anında görecektir.`, "success");
+  };
+
+  const addSubscriptionPackage = (pkg: Omit<SubscriptionPackage, 'id'>) => {
+    const newPkg: SubscriptionPackage = {
+      ...pkg,
+      id: 'pkg-' + Date.now()
+    };
+    const updated = [...subscriptionPackages, newPkg].sort((a, b) => a.sortOrder - b.sortOrder);
+    saveSettingsToDbAndHistory(bankAccounts, updated);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Yeni Lisans Paketi Oluşturuldu: ${pkg.name} (₺${pkg.price}). Oluşturan: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'WARNING'
+    );
+    showToast(`${pkg.name} lisans paketi oluşturuldu.`, "success");
+  };
+
+  const updateSubscriptionPackage = (id: string, pkgFields: Partial<SubscriptionPackage>) => {
+    const updated = subscriptionPackages.map(p => {
+      if (p.id === id) {
+        return { ...p, ...pkgFields };
+      }
+      return p;
+    }).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (id === 'starter' && pkgFields.price !== undefined) {
+      setUserProfile(prev => ({ ...prev, premiumPriceMonthly: "₺" + pkgFields.price }));
+    } else if (id === 'popular' && pkgFields.price !== undefined) {
+      setUserProfile(prev => ({ ...prev, premiumPriceAnnual: "₺" + pkgFields.price }));
+    } else if (id === 'advantage' && pkgFields.price !== undefined) {
+      setUserProfile(prev => ({ ...prev, premiumPriceCorporate: "₺" + pkgFields.price }));
+    }
+
+    saveSettingsToDbAndHistory(bankAccounts, updated);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Lisans Paketi Güncellendi (ID: ${id}). Değişiklikler: ${JSON.stringify(pkgFields)}. Güncelleyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'WARNING'
+    );
+    showToast("Paket özellikleri başarıyla güncellendi.", "success");
+  };
+
+  const deleteSubscriptionPackage = (id: string) => {
+    const target = subscriptionPackages.find(p => p.id === id);
+    if (!target) return;
+    const updated = subscriptionPackages.filter(p => p.id !== id);
+    saveSettingsToDbAndHistory(bankAccounts, updated);
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Lisans Paketi Silindi: ${target.name} (ID: ${id}). Sileyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'CRITICAL'
+    );
+    showToast("Lisans paketi kalıcı olarak silindi.", "warning");
+  };
+
+  const rollbackPaymentSettings = async () => {
+    if (paymentSettingsHistory.length === 0) {
+      showToast("Geri alınabilecek kayıtlı geçmiş ayar bulunmamaktadır.", "error");
+      return;
+    }
+    const previous = paymentSettingsHistory[0];
+    const remainingHistory = paymentSettingsHistory.slice(1);
+
+    setBankAccounts(previous.bankAccounts);
+    setSubscriptionPackages(previous.subscriptionPackages);
+    setPaymentSettingsHistory(remainingHistory);
+
+    localStorage.setItem('al_bank_accounts', JSON.stringify(previous.bankAccounts));
+    localStorage.setItem('al_subscription_packages', JSON.stringify(previous.subscriptionPackages));
+    localStorage.setItem('al_payment_settings_history', JSON.stringify(remainingHistory));
+
+    const activeBank = previous.bankAccounts.find((b: any) => b.isActive);
+    if (activeBank) {
+      setUserProfile(prev => ({ ...prev, systemIban: activeBank.iban }));
+    }
+
+    try {
+      await setDoc(doc(db, "system_configs", "payment_settings"), {
+        bankAccounts: previous.bankAccounts,
+        subscriptionPackages: previous.subscriptionPackages,
+        settingsHistory: remainingHistory
+      });
+    } catch (e) {
+      console.warn("Firestore save failed during rollback, fell back to localStorage:", e);
+    }
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Unknown';
+    addSecurityLog(
+      'SENSITIVE_ACCESS',
+      `Geri Al (Rollback) İşlemi Tetiklendi. Eski ayarlar geri yüklendi (Tarih: ${previous.timestamp}). Tetikleyen: ${userProfile.email}. Cihaz: ${userAgent}`,
+      'CRITICAL'
+    );
+    showToast("Ödeme sistemi ayarları önceki sürüme başarıyla geri döndürüldü (Rollback tamamlandı).", "success");
   };
 
   const submitPaymentRequest = (
@@ -1761,6 +2130,8 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       subscriptionPackages,
       paymentRequests,
       userSubscriptionDetails,
+      bankAccounts,
+      paymentSettingsHistory,
       
       // Enterprise extensions
       adminUsers,
@@ -1816,6 +2187,16 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       submitPaymentRequest,
       approvePaymentRequest,
       rejectPaymentRequest,
+      
+      // Premium V3.0 Enterprise Payments Admin Methods
+      addBankAccount,
+      updateBankAccount,
+      deleteBankAccount,
+      setActiveBankAccount,
+      addSubscriptionPackage,
+      updateSubscriptionPackage,
+      deleteSubscriptionPackage,
+      rollbackPaymentSettings,
       
       runAiLegalSearch,
       draftAiPetition,
