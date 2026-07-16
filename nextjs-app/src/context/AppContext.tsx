@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword, 
   signOut, 
   sendPasswordResetEmail,
+  sendEmailVerification,
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
@@ -30,6 +31,8 @@ export interface UserProfile {
   premiumPriceCorporate: string; // New Corporate tier
   isTwoFactorEnabled: boolean; // 2FA Status
   remainingQuestions?: number; // Quota tracking
+  role?: string;
+  createdAt?: string;
 }
 
 export interface CaseFile {
@@ -150,6 +153,7 @@ export interface SecurityLog {
 interface AppState {
   userProfile: UserProfile;
   isAuthenticated: boolean;
+  isEmailVerified: boolean;
   authLoading: boolean;
   authError: string | null;
   caseFiles: CaseFile[];
@@ -197,6 +201,8 @@ interface AppContextType extends AppState {
   resetPassword: (email: string) => Promise<boolean>;
   signOutUser: () => Promise<void>;
   clearAuthError: () => void;
+  sendVerificationEmail: () => Promise<boolean>;
+  reloadUser: () => Promise<void>;
   toggleAdminRole: () => void;
   togglePremiumRole: () => void;
   toggleTwoFactorAuth: () => void;
@@ -346,6 +352,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // Helper: Translate Firebase Auth Errors
   const translateFirebaseError = (code: string): string => {
@@ -382,6 +389,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!isMounted) return;
       setAuthLoading(true);
       if (user) {
+        setIsEmailVerified(user.emailVerified);
         try {
           const docSnap = await getDoc(doc(db, "users", user.uid));
           if (docSnap.exists() && isMounted) {
@@ -400,7 +408,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               premiumPriceAnnual: "₺450.00",
               premiumPriceCorporate: "₺1,250.00",
               isTwoFactorEnabled: false,
-              remainingQuestions: 3
+              remainingQuestions: 3,
+              role: "user",
+              createdAt: new Date().toISOString()
             };
             try {
               await setDoc(doc(db, "users", user.uid), profile);
@@ -418,6 +428,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
       } else if (isMounted) {
+        setIsEmailVerified(false);
         // Double check local storage session
         const storedUser = localStorage.getItem('al_user');
         if (storedUser) {
@@ -426,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (parsed && parsed.email) {
               setUserProfile(parsed);
               setIsAuthenticated(true);
+              setIsEmailVerified(true);
             } else {
               setIsAuthenticated(false);
             }
@@ -454,6 +466,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      
+      // Automatically send verification email
+      try {
+        await sendEmailVerification(user);
+      } catch (verifErr) {
+        console.warn("Could not send email verification automatically:", verifErr);
+      }
+
       const initialProfile: UserProfile = {
         id: user.uid,
         name: name,
@@ -465,7 +485,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         premiumPriceAnnual: "₺450.00",
         premiumPriceCorporate: "₺1,250.00",
         isTwoFactorEnabled: false,
-        remainingQuestions: 3
+        remainingQuestions: 3,
+        role: "user",
+        createdAt: new Date().toISOString()
       };
       try {
         await setDoc(doc(db, "users", user.uid), initialProfile);
@@ -473,6 +495,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn("Could not write initial profile to firestore:", fsErr);
       }
       setUserProfile(initialProfile);
+      setIsEmailVerified(user.emailVerified);
       setIsAuthenticated(true);
       addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu. Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
@@ -491,7 +514,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const newUid = "local_" + Date.now();
-      const newLocalUser = { uid: newUid, email, password, name, isAdmin: false, isPremium: false };
+      const newLocalUser = { uid: newUid, email, password, name, isAdmin: false, isPremium: false, role: "user", createdAt: new Date().toISOString() };
       localUsers.push(newLocalUser);
       localStorage.setItem('al_users_db', JSON.stringify(localUsers));
 
@@ -505,9 +528,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         premiumPriceMonthly: "₺199.00",
         premiumPriceAnnual: "₺450.00",
         premiumPriceCorporate: "₺1,250.00",
-        isTwoFactorEnabled: false
+        isTwoFactorEnabled: false,
+        remainingQuestions: 3,
+        role: "user",
+        createdAt: new Date().toISOString()
       };
       setUserProfile(profile);
+      setIsEmailVerified(true); // Bypass for local offline users
       setIsAuthenticated(true);
       addSecurityLog('JWT_VERIFY', `Yeni kayıt oluşturuldu (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
       setAuthLoading(false);
@@ -521,6 +548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      setIsEmailVerified(user.emailVerified);
       let profile: UserProfile;
       try {
         const docSnap = await getDoc(doc(db, "users", user.uid));
@@ -537,7 +565,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             premiumPriceMonthly: "₺199.00",
             premiumPriceAnnual: "₺450.00",
             premiumPriceCorporate: "₺1,250.00",
-            isTwoFactorEnabled: false
+            isTwoFactorEnabled: false,
+            remainingQuestions: 3,
+            role: "user",
+            createdAt: new Date().toISOString()
           };
           await setDoc(doc(db, "users", user.uid), profile);
         }
@@ -553,7 +584,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           premiumPriceMonthly: "₺199.00",
           premiumPriceAnnual: "₺450.00",
           premiumPriceCorporate: "₺1,250.00",
-          isTwoFactorEnabled: false
+          isTwoFactorEnabled: false,
+          remainingQuestions: 3,
+          role: "user",
+          createdAt: new Date().toISOString()
         };
       }
       setUserProfile(profile);
@@ -578,9 +612,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           premiumPriceMonthly: "₺199.00",
           premiumPriceAnnual: "₺450.00",
           premiumPriceCorporate: "₺1,250.00",
-          isTwoFactorEnabled: matchedUser.isTwoFactorEnabled || false
+          isTwoFactorEnabled: matchedUser.isTwoFactorEnabled || false,
+          remainingQuestions: matchedUser.remainingQuestions || 3,
+          role: matchedUser.role || "user",
+          createdAt: matchedUser.createdAt || new Date().toISOString()
         };
         setUserProfile(profile);
+        setIsEmailVerified(true); // Bypass for local offline users
         setIsAuthenticated(true);
         addSecurityLog('JWT_VERIFY', `Oturum başarıyla açıldı (Yerel Veri Tabanı). Kullanıcı: ${email}`, 'INFO');
         setAuthLoading(false);
@@ -617,6 +655,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAuthError(trMessage || "Kayıtlı kullanıcı bulunamadı.");
         setAuthLoading(false);
         return false;
+      }
+    }
+  };
+
+  const sendVerificationEmail = async (): Promise<boolean> => {
+    if (auth.currentUser) {
+      try {
+        await sendEmailVerification(auth.currentUser);
+        return true;
+      } catch (e) {
+        console.error("sendEmailVerification failed:", e);
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const reloadUser = async (): Promise<void> => {
+    if (auth.currentUser) {
+      try {
+        await auth.currentUser.reload();
+        setIsEmailVerified(auth.currentUser.emailVerified);
+      } catch (e) {
+        console.error("reloadUser failed:", e);
       }
     }
   };
@@ -1323,6 +1385,7 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
     <AppContext.Provider value={{
       userProfile,
       isAuthenticated,
+      isEmailVerified,
       authLoading,
       authError,
       caseFiles,
@@ -1367,6 +1430,8 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       resetPassword,
       signOutUser,
       clearAuthError,
+      sendVerificationEmail,
+      reloadUser,
       toggleAdminRole,
       togglePremiumRole,
       toggleTwoFactorAuth,

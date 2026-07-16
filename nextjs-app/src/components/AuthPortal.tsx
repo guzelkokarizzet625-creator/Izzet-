@@ -65,12 +65,30 @@ export default function AuthPortal({ initialMode = 'login', onClose, isModal = f
       return;
     }
 
+    // --- Rate Limiting Check ---
+    const ATTEMPTS_LIMIT = 5;
+    const COOLDOWN_MS = 60000; // 60 seconds
+    const now = Date.now();
+    const storedAttempts = Number(localStorage.getItem('al_login_attempts') || '0');
+    const storedTimestamp = Number(localStorage.getItem('al_last_attempt_time') || '0');
+
+    if (storedAttempts >= ATTEMPTS_LIMIT && now - storedTimestamp < COOLDOWN_MS) {
+      const remainingSec = Math.ceil((COOLDOWN_MS - (now - storedTimestamp)) / 1000);
+      setLocalError(`Güvenlik nedeniyle hesabınız geçici olarak kilitlendi. Lütfen ${remainingSec} saniye sonra tekrar deneyin.`);
+      return;
+    }
+
     setLoading(true);
     const success = await signIn(email, password);
     setLoading(false);
     
-    if (!success) {
-      // Error will be shown via authError from context
+    if (success) {
+      localStorage.removeItem('al_login_attempts');
+      localStorage.removeItem('al_last_attempt_time');
+    } else {
+      const newAttempts = storedAttempts + 1;
+      localStorage.setItem('al_login_attempts', String(newAttempts));
+      localStorage.setItem('al_last_attempt_time', String(Date.now()));
     }
   };
 

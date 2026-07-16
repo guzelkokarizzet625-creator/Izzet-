@@ -37,7 +37,9 @@ import {
   Loader2,
   LogOut,
   Lock,
-  CheckCircle
+  CheckCircle,
+  Mail,
+  AlertCircle
 } from 'lucide-react';
 
 type TabId = 
@@ -54,9 +56,21 @@ type TabId =
   | 'simulator';
 
 export default function HomeClient() {
-  const { userProfile, isAuthenticated, authLoading, signOutUser } = useApp();
+  const { userProfile, isAuthenticated, isEmailVerified, authLoading, signOutUser, sendVerificationEmail, reloadUser } = useApp();
   const [activeTab, setActiveTab] = useState<TabId>('ofis');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [verifError, setVerifError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   if (authLoading) {
     return (
@@ -69,6 +83,111 @@ export default function HomeClient() {
 
   if (!isAuthenticated) {
     return <PublicWebsite onLoginSuccess={() => {}} />;
+  }
+
+  // Email Verification Required Screen
+  if (isAuthenticated && !isEmailVerified) {
+    const handleResend = async () => {
+      if (cooldown > 0 || verificationLoading) return;
+      setVerificationLoading(true);
+      setVerifError(null);
+      const success = await sendVerificationEmail();
+      setVerificationLoading(false);
+      if (success) {
+        setVerificationSent(true);
+        setCooldown(60);
+      } else {
+        setVerifError("Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.");
+      }
+    };
+
+    const handleRefresh = async () => {
+      if (refreshLoading) return;
+      setRefreshLoading(true);
+      setVerifError(null);
+      await reloadUser();
+      setRefreshLoading(false);
+    };
+
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-midnight text-ivory px-4 py-12 relative overflow-hidden font-sans">
+        {/* Decorative background grid & glow effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-goldDark/10 via-midnight/80 to-midnight -z-10" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-goldDark/5 blur-[120px] rounded-full -z-10" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amberAccent/5 blur-[120px] rounded-full -z-10" />
+
+        <div className="w-full max-w-md bg-charcoal border border-slateGrey/60 rounded-3xl p-8 shadow-2xl relative text-center space-y-6">
+          <div className="inline-flex bg-gradient-to-br from-goldDark to-amberAccent p-3.5 rounded-2xl text-midnight shadow-lg shadow-goldDark/20 mx-auto">
+            <Mail className="w-7 h-7" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-xl font-black text-goldLight tracking-wider uppercase font-display">
+              E-POSTA ADRESİNİZİ DOĞRULAYIN
+            </h1>
+            <p className="text-xs text-softGrey leading-relaxed">
+              Hesabınız başarıyla oluşturuldu. Güvenliğiniz ve AL Hukuk AI servislerine tam erişim sağlamanız için <span className="text-goldLight font-bold underline">{userProfile.email}</span> adresine gönderdiğimiz doğrulama bağlantısına tıklamanız gerekmektedir.
+            </p>
+          </div>
+
+          {/* Action Message Center */}
+          {verifError && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 text-left">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-red-300 font-medium leading-relaxed">{verifError}</p>
+            </div>
+          )}
+
+          {verificationSent && (
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-start gap-3 text-left animate-fadeIn">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-emerald-300 font-medium leading-relaxed">Doğrulama bağlantısı e-posta adresinize tekrar gönderildi.</p>
+            </div>
+          )}
+
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshLoading}
+              className="w-full bg-gradient-to-r from-goldDark to-amberAccent hover:brightness-110 text-midnight font-extrabold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-goldDark/10 outline-none"
+              style={{ minHeight: '48px' }}
+            >
+              {refreshLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <span>Doğrulamayı Kontrol Et</span>
+              )}
+            </button>
+
+            <button
+              onClick={handleResend}
+              disabled={cooldown > 0 || verificationLoading}
+              className="w-full border border-slateGrey hover:border-goldDark text-softGrey hover:text-goldLight font-bold text-xs py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 outline-none disabled:opacity-50"
+              style={{ minHeight: '48px' }}
+            >
+              {verificationLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : cooldown > 0 ? (
+                <span>Tekrar Gönder ({cooldown} sn)</span>
+              ) : (
+                <span>Doğrulama Bağlantısını Yeniden Gönder</span>
+              )}
+            </button>
+          </div>
+
+          <div className="pt-4 border-t border-slateGrey/40 flex justify-center">
+            <button
+              onClick={signOutUser}
+              className="flex items-center gap-2 text-xs font-bold text-red-400 hover:text-red-300 transition-colors"
+              style={{ minHeight: '40px' }}
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Farklı Bir Hesapla Giriş Yap / Çıkış Yap</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const menuItems = [
@@ -301,7 +420,27 @@ export default function HomeClient() {
           <div className="flex items-center gap-3 text-xs">
             {/* Quick toggles */}
             <div className="hidden md:flex items-center gap-2 bg-midnight/80 px-3 py-1.5 rounded-xl border border-slateGrey/50">
-              
+              <span className="text-[9px] font-bold text-softGrey uppercase">Hızlı Toggle:</span>
+              <button 
+                onClick={toggleAdminRole} 
+                className={`text-[9px] px-2 py-0.5 rounded font-black border transition-all ${
+                  userProfile.isAdmin 
+                    ? 'bg-red-500/15 text-red-400 border-red-500/30' 
+                    : 'bg-slateGrey text-softGrey border-slateGrey'
+                }`}
+              >
+                ADMIN: {userProfile.isAdmin ? 'AÇIK' : 'KAPALI'}
+              </button>
+              <button 
+                onClick={togglePremiumRole} 
+                className={`text-[9px] px-2 py-0.5 rounded font-black border transition-all ${
+                  userProfile.isPremium 
+                    ? 'bg-successGreen/15 text-successGreen border-successGreen/30' 
+                    : 'bg-slateGrey text-softGrey border-slateGrey'
+                }`}
+              >
+                PREMIUM: {userProfile.isPremium ? 'AÇIK' : 'KAPALI'}
+              </button>
             </div>
 
             {/* Account state display */}
