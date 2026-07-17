@@ -34,7 +34,9 @@ import {
   Check,
   FileDown,
   User,
-  Bot
+  Bot,
+  PenTool,
+  GraduationCap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -158,7 +160,7 @@ interface FinalVerdictReport {
   onerilenEmsalKararlar: string[];
 }
 
-export default function CaseWorkspace() {
+export default function CaseWorkspace({ onSwitchTab }: { onSwitchTab?: (tab: string) => void }) {
   const { 
     caseFiles, 
     selectedCaseFileId, 
@@ -1079,7 +1081,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
             className="bg-gradient-to-r from-goldDark to-amberAccent text-midnight font-bold text-xs px-8 py-3.5 rounded-xl hover:shadow-xl hover:shadow-goldDark/15 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2 border border-goldLight/20 shadow-lg"
           >
             <Sparkles className="w-4 h-4 text-midnight animate-spin" />
-            Simülasyon Motorunu Aktif Et (V3.0)
+            Akıllı Hukuki Analizi Başlat
           </button>
         </div>
       </div>
@@ -1105,7 +1107,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
         <div className="flex items-center gap-2.5">
           <div className="bg-goldDark/10 text-goldLight border border-goldDark/30 text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-inner">
             <Sparkles className="w-3 h-3 text-goldLight" />
-            Premium Hukuk Motoru V3.0
+            Yapay Zekâ Hukuk Müşaviri
           </div>
           <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
             AI ONLINE
@@ -1233,135 +1235,231 @@ Rapor Sonu - AL HUKUK AI Enterprise
                 
                 {/* 1. GENEL & USUL ÖZETİ */}
                 {activeSubTab === 'general' && (
-                  <div className="space-y-6">
-                    <div className="bg-midnight/70 p-5 rounded-xl border border-slateGrey/40 space-y-3 shadow-inner">
-                      <h3 className="text-xs font-bold text-goldDark uppercase tracking-widest flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-goldDark" />
-                        Dava Özeti ve Hukuki Nitelendirme
+                  <div className="space-y-6 animate-fade-in">
+                    {/* Header Bar */}
+                    <div className="bg-midnight/70 p-5 rounded-2xl border border-goldDark/30 space-y-2 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-goldDark/5 rounded-full blur-[80px] pointer-events-none"></div>
+                      <h3 className="text-sm font-serif font-bold text-goldLight uppercase tracking-wide flex items-center gap-2">
+                        <Scale className="w-5 h-5 text-goldDark" />
+                        Uyuşmazlık Detaylı Bilgi ve Hukuki Nitelendirme Raporu
                       </h3>
-                      <p className="text-xs text-softGrey leading-relaxed whitespace-pre-wrap">
-                        {expandedAnalysis?.davaOzeti || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).davaOzeti}
+                      <p className="text-[11px] text-softGrey">
+                        Davanıza ilişkin maddi vakıaların, yasal gerekçelerin, eksikliklerin ve proaktif adımların kapsamlı analiz tablosu.
                       </p>
                     </div>
 
-                    {/* AL HUKUK AI ULTRA ENGINE V3 - REALITY ENGINE */}
-                    <div className="bg-midnight/80 backdrop-blur-md border border-goldDark/30 rounded-xl p-5 space-y-4 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-60 h-60 bg-goldDark/5 rounded-full blur-[80px] pointer-events-none"></div>
-                      <div className="flex items-center justify-between border-b border-slateGrey/20 pb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-goldDark/10 flex items-center justify-center border border-goldDark/30">
-                            <Sparkles className="w-4 h-4 text-goldLight animate-pulse" />
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-black text-goldLight uppercase tracking-widest leading-none">DETAYLI VAKIA ANALİZİ</h3>
-                            <p className="text-[9px] text-softGrey uppercase tracking-wider mt-1">Vakıa Doğruluk, Öngörü ve Bağımsız Mütalaa Katmanı</p>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* 1. Olay Özeti */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">🧠</span> Olay Özeti
+                        </h4>
+                        <p className="text-xs text-softGrey leading-relaxed whitespace-pre-wrap">
+                          {expandedAnalysis?.davaOzeti || activeCase?.description || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').davaOzeti}
+                        </p>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* GERÇEKLER */}
-                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                              Somut Gerçekler
-                            </span>
-                            <span className="text-[9px] font-bold text-emerald-400/70">KESİN BİLGİ</span>
-                          </div>
-                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
-                            {(expandedAnalysis?.realityEngine?.gercekler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.gercekler || []).map((item, i) => (
-                              <li key={i} className="marker:text-emerald-400">{item}</li>
-                            ))}
-                          </ul>
-                        </div>
 
-                        {/* TAHMİNLER */}
-                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                              Yargısal Tahminler
-                            </span>
-                            <span className="text-[9px] font-bold text-blue-400/70">YOL HARİTASI</span>
-                          </div>
-                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
-                            {(expandedAnalysis?.realityEngine?.tahminler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.tahminler || []).map((item, i) => (
-                              <li key={i} className="marker:text-blue-400">{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* OLASILIKLAR */}
-                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-goldLight uppercase tracking-widest flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-goldLight animate-pulse"></span>
-                              Olasılıklar
-                            </span>
-                            <span className="text-[9px] font-bold text-goldLight/70">YÜZDESEL İHTİMAL</span>
-                          </div>
-                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
-                            {(expandedAnalysis?.realityEngine?.olasiliklar || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.olasiliklar || []).map((item, i) => (
-                              <li key={i} className="marker:text-goldLight">{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* HUKUKİ GÖRÜŞLER */}
-                        <div className="bg-charcoal/60 rounded-xl p-4 border border-slateGrey/30 space-y-2.5 shadow-inner">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                              Hukuki Görüşler
-                            </span>
-                            <span className="text-[9px] font-bold text-purple-400/70">BAĞIMSIZ MÜTALAA</span>
-                          </div>
-                          <ul className="space-y-2 text-[11px] text-softGrey list-disc list-inside leading-relaxed">
-                            {(expandedAnalysis?.realityEngine?.hukukiGorusler || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).realityEngine?.hukukiGorusler || []).map((item, i) => (
-                              <li key={i} className="marker:text-purple-400">{item}</li>
-                            ))}
-                          </ul>
-                        </div>
+                      {/* 2. Hukuki Değerlendirme */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">⚖️</span> Hukuki Değerlendirme
+                        </h4>
+                        <p className="text-xs text-softGrey leading-relaxed">
+                          {expandedAnalysis?.hukukiRiskAnalizi || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').hukukiRiskAnalizi}
+                        </p>
+                        {expandedAnalysis?.ispatYukuAnalizi && (
+                          <p className="text-[11px] text-goldDark/90 italic border-t border-slateGrey/20 pt-2 mt-2">
+                            <strong>İspat Yükü Notu:</strong> {expandedAnalysis.ispatYukuAnalizi}
+                          </p>
+                        )}
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Yetki & Görev Analizi */}
-                      <div className="bg-midnight p-5 rounded-xl border border-slateGrey/30 space-y-3.5">
-                        <h3 className="text-xs font-bold text-goldLight uppercase tracking-wider flex items-center gap-1.5">
-                          <Scale className="w-4 h-4 text-goldDark" />
-                          Görev ve Yetki Değerlendirmesi
-                        </h3>
-                        <div className="space-y-2.5 text-xs">
-                          <p className="text-softGrey leading-relaxed">
-                            <strong className="text-goldDark block">Görevli Mahkeme:</strong> 
-                            {expandedAnalysis?.gorevAnalizi || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).gorevAnalizi}
-                          </p>
-                          <p className="text-softGrey leading-relaxed">
-                            <strong className="text-goldDark block">Yetkili Mahkeme:</strong> 
-                            {expandedAnalysis?.yetkiAnalizi || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).yetkiAnalizi}
-                          </p>
+                      {/* 3. İlgili Hukuk Dalı */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">📂</span> İlgili Hukuk Dalı
+                        </h4>
+                        <div className="flex items-center gap-2 pt-1">
+                          <span className="bg-goldDark/20 text-goldLight border border-goldDark/40 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            {activeCase?.category || "Genel Hukuk"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-softGrey leading-relaxed">
+                          Uyuşmazlık konusu olay, {activeCase?.category || "ilgili hukuk"} kuralları çerçevesinde incelenmiş olup, yetki ve görev kuralları bu dala göre tespit edilmiştir.
+                        </p>
+                      </div>
+
+                      {/* 4. Gerekli Belgeler */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                            <span className="text-sm">📄</span> Gerekli Belgeler
+                          </h4>
+                          <ul className="list-disc pl-4 space-y-1.5 text-xs text-softGrey">
+                            {(() => {
+                              const me = expandedAnalysis?.missingEvidence || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').missingEvidence;
+                              const docs = me?.eksikBelgeler || [];
+                              if (docs.length > 0) {
+                                return docs.slice(0, 3).map((item, idx) => <li key={idx}>{item}</li>);
+                              }
+                              return (
+                                <>
+                                  <li>Sözleşme Örneği ve Tarafların Mutabakat Yazıları</li>
+                                  <li>Ödeme Dekontları, Banka Kayıtları veya Hesap Ekstreleri</li>
+                                  <li>Yazılı İhtarname Sureti ve Tebliğ Şerhi</li>
+                                </>
+                              );
+                            })()}
+                          </ul>
+                        </div>
+                        {onSwitchTab && (
+                          <div className="pt-4 border-t border-slateGrey/20 mt-4 flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-softGrey">Elinizde mevcut belgeler var mı?</span>
+                            <button
+                              onClick={() => onSwitchTab('camera')}
+                              className="bg-goldDark/10 hover:bg-goldDark/20 text-goldLight border border-goldDark/30 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 shrink-0"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Belge Yüklemek İster misiniz?
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 5. İlgili Kanunlar */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">📚</span> İlgili Kanunlar
+                        </h4>
+                        <div className="space-y-1.5">
+                          {(expandedAnalysis?.kanunMaddeleri || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').kanunMaddeleri).slice(0, 3).map((m, i) => (
+                            <div key={i} className="bg-midnight/40 p-2 rounded-lg border border-slateGrey/20 text-[10px] text-softGrey leading-normal">
+                              {m}
+                            </div>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Zamanaşımı & Arabuluculuk */}
-                      <div className="bg-midnight p-5 rounded-xl border border-slateGrey/30 space-y-3.5">
-                        <h3 className="text-xs font-bold text-goldLight uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 text-goldDark" />
-                          Süreler ve Alternatif Çözüm Yolu
-                        </h3>
-                        <div className="space-y-2.5 text-xs">
-                          <p className="text-softGrey leading-relaxed">
-                            <strong className="text-goldDark block">Zamanaşımı / Hak Düşürücü Süre:</strong> 
-                            {expandedAnalysis?.zamanasimiAnalizi || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).zamanasimiAnalizi}
-                          </p>
-                          <p className="text-softGrey leading-relaxed">
-                            <strong className="text-goldDark block">Arabuluculuk İhtimali ve Çözüm Derecesi:</strong> 
-                            {expandedAnalysis?.arabuluculukIhtimali || getFallbackAnalysis(activeCase.title, activeCase.category, activeCase.description).arabuluculukIhtimali}
-                          </p>
+                      {/* 6. Olası Riskler */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">⚠️</span> Olası Riskler
+                        </h4>
+                        <ul className="list-disc pl-4 space-y-1 text-xs text-softGrey">
+                          {(() => {
+                            const errs = expandedAnalysis?.usulHatalari || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').usulHatalari || [];
+                            if (errs.length > 0) {
+                              return errs.slice(0, 2).map((err, idx) => <li key={idx} className="marker:text-errorRed">{err}</li>);
+                            }
+                            return (
+                              <>
+                                <li className="marker:text-errorRed">İspat yükünün yerine getirilememesi halinde davanın reddi riski</li>
+                                <li className="marker:text-errorRed">Usuli sürelerin veya hak düşürücü sürelerin kaçırılması riski</li>
+                              </>
+                            );
+                          })()}
+                        </ul>
+                      </div>
+
+                      {/* 7. Önerilen Sonraki Adımlar */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all">
+                        <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                          <span className="text-sm">🎯</span> Önerilen Sonraki Adımlar
+                        </h4>
+                        <div className="space-y-2">
+                          {(expandedAnalysis?.stratejikOneriler || getFallbackAnalysis(activeCase?.title || '', activeCase?.category || '', activeCase?.description || '').stratejikOneriler).slice(0, 2).map((suggest, idx) => (
+                            <div key={idx} className="text-xs text-softGrey flex items-start gap-1.5 leading-relaxed">
+                              <span className="text-goldDark font-bold shrink-0">{idx + 1}.</span>
+                              <p>{suggest}</p>
+                            </div>
+                          ))}
                         </div>
                       </div>
+
+                      {/* 8. Oluşturulabilecek Belgeler */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                            <span className="text-sm">📑</span> Oluşturulabilecek Belgeler
+                          </h4>
+                          <ul className="space-y-1.5 text-xs text-softGrey">
+                            <li className="flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                              Dava Dilekçesi (Yapay zekâ destekli taslak)
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                              Cevap Dilekçesi (Karşı taraf iddialarına yönelik)
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                              İhtarname Örneği ve Delil Sunum Formu
+                            </li>
+                          </ul>
+                        </div>
+                        {onSwitchTab && (
+                          <div className="pt-4 border-t border-slateGrey/20 mt-4 flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-softGrey">Dilekçenizi hemen yazın:</span>
+                            <button
+                              onClick={() => onSwitchTab('petition')}
+                              className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 shrink-0 animate-pulse"
+                            >
+                              <PenTool className="w-3 h-3" />
+                              Dilekçe Hazırlamak İster misiniz?
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 9. İlgili Hukuk Akademisi Dersleri */}
+                      <div className="bg-charcoal border border-slateGrey/40 rounded-2xl p-5 space-y-3 hover:border-goldDark/30 transition-all flex flex-col justify-between md:col-span-2">
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-extrabold text-goldLight flex items-center gap-2 uppercase tracking-wider">
+                            <span className="text-sm">🎓</span> İlgili Hukuk Akademisi Dersleri
+                          </h4>
+                          {(() => {
+                            const isCeza = (activeCase?.category || '').toLowerCase().includes('ceza');
+                            const isIs = (activeCase?.category || '').toLowerCase().includes('iş') || (activeCase?.category || '').toLowerCase().includes('is');
+                            const isTicaret = (activeCase?.category || '').toLowerCase().includes('ticaret') || (activeCase?.category || '').toLowerCase().includes('şirket');
+                            
+                            let matchedLesson = "Kira Hukukunda Yeni Arabuluculuk ve Tahliye Koşulları";
+                            let lessonCategory = "Borçlar & Kira";
+                            
+                            if (isCeza) {
+                              matchedLesson = "Ceza Muhakemesinde Arama, El Koyma ve Dijital Deliller";
+                              lessonCategory = "Ceza Hukuku";
+                            } else if (isIs) {
+                              matchedLesson = "4857 Sayılı İş Hukuku: Fesih Usulleri & Hak İhlali";
+                              lessonCategory = "İş Hukuku";
+                            } else if (isTicaret) {
+                              matchedLesson = "Ticari Davalarda İspat Kuralları & Kesin Deliller";
+                              lessonCategory = "Ticaret Hukuku";
+                            }
+
+                            return (
+                              <div className="bg-midnight/30 p-4 rounded-xl border border-slateGrey/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider inline-block">
+                                    {lessonCategory}
+                                  </span>
+                                  <h5 className="text-xs font-bold text-ivory">{matchedLesson}</h5>
+                                  <p className="text-[10px] text-softGrey">Akademimizde bu dava konusuyla doğrudan ilgili pratik dersi tamamlayarak dosyanıza daha hâkim olun.</p>
+                                </div>
+                                {onSwitchTab && (
+                                  <button
+                                    onClick={() => onSwitchTab('academy')}
+                                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 shrink-0"
+                                  >
+                                    <GraduationCap className="w-3.5 h-3.5" />
+                                    İlgili Eğitimi Açayım mı?
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 )}

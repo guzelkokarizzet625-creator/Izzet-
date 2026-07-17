@@ -276,7 +276,7 @@ export default function HomeClient() {
       case 'ofis':
         return <OfficeDashboard onGoToSettings={() => setActiveTab('settings')} onSwitchTab={(tab) => setActiveTab(tab as TabId)} />;
       case 'dava':
-        return <CaseWorkspace />;
+        return <CaseWorkspace onSwitchTab={(tab) => setActiveTab(tab as TabId)} />;
       case 'search':
         return <LegalSearch />;
       case 'petition':
