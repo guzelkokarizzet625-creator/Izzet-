@@ -192,11 +192,11 @@ export default function HomeClient() {
 
   const menuItems = [
     { id: 'ofis', label: 'Ofis Paneli', icon: Briefcase, color: 'text-goldDark' },
+    { id: 'simulator', label: '👨⚖️ Yapay Müşavir', icon: Bot, color: 'text-purple-400' },
+    { id: 'academy', label: '🎓 Hukuk Akademisi', icon: GraduationCap, color: 'text-emerald-400' },
     { id: 'dava', label: 'Dava Simülatörü', icon: Sparkles, color: 'text-amberAccent' },
     { id: 'search', label: 'Yapay Zekâ Arama', icon: Search, color: 'text-blue-400' },
     { id: 'petition', label: 'Dilekçe Stüdyosu', icon: PenTool, color: 'text-pink-400' },
-    { id: 'simulator', label: 'Müşavir Sohbet', icon: Bot, color: 'text-purple-400' },
-    { id: 'academy', label: 'Hukuk Akademisi', icon: GraduationCap, color: 'text-emerald-400' },
     { id: 'voice', label: 'Sesli Avukat', icon: Mic, color: 'text-orange-400' },
     { id: 'camera', label: 'Belge & OCR', icon: Camera, color: 'text-cyan-400' },
     { id: 'payment', label: 'Ödeme & Lisans', icon: CreditCard, color: 'text-yellow-400' },
