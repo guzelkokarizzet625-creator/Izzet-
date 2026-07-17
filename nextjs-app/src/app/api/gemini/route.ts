@@ -150,28 +150,12 @@ export async function POST(request: Request) {
     // CASE A: API Keys are not configured -> High-Fidelity Simulation Fallback
     // ----------------------------------------------------
     if (!isGeminiAvailable && !isOpenAiAvailable) {
-      console.warn("AI Orchestrator: No API Keys configured. Executing Turkish Legal AI Simulation Fallback.");
-
-      if (isSimulationRequest) {
-        // Generate customized JSON case simulation report
-        const title = extractField(prompt, 'Uyuşmazlık Başlığı') || 'Belirsiz Alacak ve Tazminat Davası';
-        const clientName = extractField(prompt, 'Müvekkil') || '[Müvekkil Adı]';
-        const category = extractField(prompt, 'Kategori') || 'İş Hukuku';
-        const description = extractField(prompt, 'Olay Açıklaması') || 'İş sözleşmesi ihbar önellerine ve yasal kurallara uyulmadan haksız feshedilmiştir.';
-        
-        finalResponseText = generateCustomSimulationJson(title, clientName, category, description);
-        chosenModelLabel = 'AL HUKUK AI ORCHESTRATOR V3 (LOCAL ENGINE)';
-        confidenceVal = 98;
-        reasoningLevelLabel = 'HYPER-REALISTIC LOCAL REASONING ENGINE';
-        legalRiskVal = 12;
-      } else {
-        // Standard text fallback matching taskType
-        finalResponseText = getMockLegalAiResponse(prompt, taskType || 'CHAT_ASSISTANT');
-        chosenModelLabel = 'AL HUKUK AI ORCHESTRATOR V3 (LOCAL ENGINE)';
-        confidenceVal = 95;
-        reasoningLevelLabel = 'LOCAL REASONING';
-        legalRiskVal = 18;
-      }
+      console.error("AI Orchestrator: No API Keys configured.");
+      return NextResponse.json({
+        error: 'API Anahtarları Yapılandırılmadı',
+        details: 'Gerekli GEMINI_API_KEY veya OPENAI_API_KEY ortam değişkenleri bulunamadı. Lütfen Vercel ayarlarından bunları tanımlayın.',
+        instructions: 'Vercel Deployment -> Settings -> Environment Variables bölümüne giderek GEMINI_API_KEY (ve opsiyonel olarak OPENAI_API_KEY) anahtarlarını ekleyin.'
+      }, { status: 401 });
     } 
     // ----------------------------------------------------
     // CASE B: API Keys are available -> Live AI Orchestration
