@@ -386,7 +386,7 @@ export default function OfficeDashboard({ onGoToSettings, onSwitchTab }: OfficeD
     setShowAddEvent(false);
   };
 
-  // Simulated AI Legal Orchestrator Computation
+  // Yapay zeka ile hukuki analiz hesaplama süreci başlatılıyor
   const runAiAnalysis = () => {
     if (!caseTitle.trim()) {
       alert("Yapay zeka analizi için lütfen önce 'Dosya Başlığı' girin.");

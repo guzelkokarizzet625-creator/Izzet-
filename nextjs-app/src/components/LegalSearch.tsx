@@ -113,7 +113,7 @@ export default function LegalSearch() {
     
     // Clean text by removing any trailing orchestrator details if present
     let cleanedText = text;
-    const metadataMarker = "### 🛠️ AL HUKUK AI ORCHESTRATOR V3 RAPORU";
+    const metadataMarker = "### ⚖️ Hukuki Analiz Raporu";
     if (text.includes(metadataMarker)) {
       const parts = text.split(metadataMarker);
       cleanedText = parts[0];

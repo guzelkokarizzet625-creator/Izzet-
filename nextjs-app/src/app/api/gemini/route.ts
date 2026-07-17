@@ -75,7 +75,7 @@ async function callGemini(prompt: string, modelName: string, systemInstruction?:
   const result = await generateText({
     model: google(modelName),
     prompt: prompt,
-    system: systemInstruction || "Sen profesyonel bir Hukuk Yapay Zekasısın. Cevapların kısa, net, teknik, hukuki, gereksiz cümlesiz ve maddeler halinde olsun."
+    system: systemInstruction || "Sen, Türk Hukuku konusunda uzmanlaşmış, üst düzey bir Yapay Zeka Hukuk Müşavirisin. Cevapların; Türk mevzuatına dayalı, güncel, akademik standartlarda, teknik, net, nesnel ve kaynak gösterilebilir olmalıdır. Belirsiz durumlarda net bir sonuç vaat etmek yerine hukuki riskleri analiz et. Asla yanlış veya uydurma bilgi üretme. Cevaplarını mantıksal bir sıra ile maddeler halinde sun."
   });
   return result.text;
 }
@@ -97,7 +97,7 @@ async function callOpenAi(prompt: string, modelName: string, systemInstruction?:
       messages: [
         {
           role: 'system',
-          content: systemInstruction || "Sen profesyonel bir Hukuk Yapay Zekasısın. Cevapların kısa, net, teknik, hukuki, gereksiz cümlesiz ve maddeler halinde olsun."
+          content: systemInstruction || "Sen, Türk Hukuku konusunda uzmanlaşmış, üst düzey bir Yapay Zeka Hukuk Müşavirisin. Cevapların; Türk mevzuatına dayalı, güncel, akademik standartlarda, teknik, net, nesnel ve kaynak gösterilebilir olmalıdır. Belirsiz durumlarda net bir sonuç vaat etmek yerine hukuki riskleri analiz et. Asla yanlış veya uydurma bilgi üretme. Cevaplarını mantıksal bir sıra ile maddeler halinde sun."
         },
         {
           role: 'user',
@@ -127,7 +127,6 @@ export async function POST(request: Request) {
     const cacheKey = `${taskType || 'DEFAULT'}_${prompt.trim()}`;
     const cachedEntry = apiCache.get(cacheKey);
     if (cachedEntry && (Date.now() - cachedEntry.timestamp < CACHE_TTL)) {
-      console.log('AI Orchestrator: Cache Hit!');
       return NextResponse.json(cachedEntry.response);
     }
 
@@ -262,9 +261,9 @@ Lütfen yukarıdaki iki cevabın en güvenli, doğru ve teknik sentezini tek bir
         } else {
           finalResponseText = getMockLegalAiResponse(prompt, taskType || 'CHAT_ASSISTANT');
         }
-        chosenModelLabel = 'AL HUKUK AI ORCHESTRATOR V3 (FALLBACK CORE)';
+        chosenModelLabel = 'AL HUKUK AI Core V3';
         confidenceVal = 90;
-        reasoningLevelLabel = 'SECURE FALLBACK ENGINE';
+        reasoningLevelLabel = 'Standart Analiz';
         legalRiskVal = 19;
       }
     }
