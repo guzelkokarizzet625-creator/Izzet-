@@ -52,7 +52,8 @@ function extractField(prompt: string, label: string): string {
   const regex = new RegExp(`${label}:?\\s*(.*)`, 'i');
   const match = prompt.match(regex);
   if (match && match[1]) {
-    return match[1].trim().split('\n')[0].replace(/["']/g, '');
+    return match[1].trim().split('
+')[0].replace(/["']/g, '');
   }
   return '';
 }
@@ -311,19 +312,7 @@ Lütfen yukarıdaki iki cevabın en güvenli, doğru ve teknik sentezini tek bir
         console.warn("Could not inject metadata into text JSON string:", e);
       }
     } else {
-      // If the response is Markdown, append a beautiful metadata report footer!
-      const metadataFooter = `
-
----
-### 🛠️ AL HUKUK AI ORCHESTRATOR V3 RAPORU
-* 🚀 **Kullanılan Yapay Zekâ Modeli:** \`${chosenModelLabel}\`
-* 🧠 **Sistem Muhakeme Seviyesi:** \`${reasoningLevelLabel}\`
-* ⏱️ **Toplam İşlem Süresi:** \`${processingTimeSec}\`
-* 🎯 **Orkestrasyon Güven Oranı (Confidence):** \`%${confidenceVal}\`
-* ⚠️ **Tespit Edilen Hukuki Risk Seviyesi:** \`%${legalRiskVal}\`
-* 🛡️ **Doğrulama Protokolü:** \`Aktif (Resmî Gazete ve Yargıtay Karar Tarama %100 Uyumlu)\`
-`;
-      finalResponseText += metadataFooter;
+      // Do not append technical metadata footer for end-users
       restPayload.text = finalResponseText;
     }
 
@@ -616,7 +605,24 @@ function getMockLegalAiResponse(prompt: string, taskType: string): string {
           {"source": "4857 Sayılı İş Kanunu m. 41 (Fazla Çalışma Ücreti)", "content": "Haftalık kırkbeş saati aşan çalışmalar fazla çalışmadır. Her bir saat fazla çalışma için verilecek ücret normal çalışma ücretinin yüzde elli yükseltilmesiyle ödenir."},
           {"source": "Yargıtay Hukuk Genel Kurulu E. 2020/22-104", "content": "WhatsApp görüşmeleri, elektronik ortamda delil başlangıcı niteliğindedir ve tanık anlatımlarıyla desteklendiğinde kesin delil teşkil eder."}
         ],
-        "draftPetition": "NÖBETÇİ İŞ MAHKEMESİ HAKİMLİĞİ'NE\\n\\nDAVACI: [Müvekkil Adı]\\nDAVALI: [İşveren Şirket Adı]\\n\\nKONU: Kıdem tazminatı, ihbar tazminatı, ödenmeyen fazla mesai ve eksik maaş alacaklarının faiziyle tahsili talebidir.\\n\\nAÇIKLAMALAR:\\n1. Müvekkil, davalı şirkette 10.01.2026 - 30.06.2026 tarihleri arasında çalışmıştır.\\n2. İş akdi, hiçbir haklı sebep gösterilmeksizin tek taraflı feshedilmiştir. Çalışma süresince fazla mesai yaptırılmış fakat ödenmemiştir.\\n3. Sunduğumuz WhatsApp yazışmaları ve hesap hareketleri iddialarımızı açıkça ispatlamaktadır.\\n\\nHUKUKİ DELİLLER: İş sözleşmesi, WhatsApp konuşma kayıtları, Banka dekontları, SGK Hizmet Dökümü, Emsal Kararlar, Tanık.\\n\\nNETİCE-İ TALEP: Haklı davamızın kabulü ile kıdem, ihbar, fazla çalışma ve eksik maaş alacaklarımızın yasal faiziyle tahsiline karar verilmesini talep ederiz.\\n\\nSaygılarımızla,\\nDavacı Vekili"
+        "draftPetition": "NÖBETÇİ İŞ MAHKEMESİ HAKİMLİĞİ'NE\
+\
+DAVACI: [Müvekkil Adı]\
+DAVALI: [İşveren Şirket Adı]\
+\
+KONU: Kıdem tazminatı, ihbar tazminatı, ödenmeyen fazla mesai ve eksik maaş alacaklarının faiziyle tahsili talebidir.\
+\
+AÇIKLAMALAR:\
+1. Müvekkil, davalı şirkette 10.01.2026 - 30.06.2026 tarihleri arasında çalışmıştır.\
+2. İş akdi, hiçbir haklı sebep gösterilmeksizin tek taraflı feshedilmiştir. Çalışma süresince fazla mesai yaptırılmış fakat ödenmemiştir.\
+3. Sunduğumuz WhatsApp yazışmaları ve hesap hareketleri iddialarımızı açıkça ispatlamaktadır.\
+\
+HUKUKİ DELİLLER: İş sözleşmesi, WhatsApp konuşma kayıtları, Banka dekontları, SGK Hizmet Dökümü, Emsal Kararlar, Tanık.\
+\
+NETİCE-İ TALEP: Haklı davamızın kabulü ile kıdem, ihbar, fazla çalışma ve eksik maaş alacaklarımızın yasal faiziyle tahsiline karar verilmesini talep ederiz.\
+\
+Saygılarımızla,\
+Davacı Vekili"
       }`;
 
     case "DOCUMENT_ANALYSIS":
@@ -630,26 +636,30 @@ function getMockLegalAiResponse(prompt: string, taskType: string): string {
       return generateDynamicLegalSearchResponse(prompt);
 
     case "PETITION_DRAFT":
-      return `NÖBETÇİ TÜKETİCİ MAHKEMESİ HAKİMLİĞİ'NE
+      return `NÖBETÇİ MAHKEME HAKİMLİĞİ'NE
 
-DAVACI: Av. Kerem Soylu (T.C. No: 12345678901) - Adres: Kadıköy/İstanbul
-DAVALI: ABC Teknoloji Ticaret A.Ş. - Adres: Şişli/İstanbul
+DAVACI: [Müvekkil Adı/Unvanı]
+DAVALI: [Karşı Taraf Adı/Unvanı]
 
-KONU: Ayıplı Hizmet Nedeniyle Sözleşmeden Dönme, Bedel İadesi ve Maddi Tazminat Talebidir.
-HARCA ESAS DEĞER: 45.000,00 TL
+KONU: Yukarıda belirttiğiniz parametreler ve olay örgüsü doğrultusunda dava açılması talebidir.
 
 AÇIKLAMALAR:
-1- Müvekkil, davalı şirketten 12.02.2026 tarihinde 45.000 TL bedelle 'Yapay Zeka Destekli Muhasebe Yazılımı' satın almıştır.
-2- Satın alınan yazılım, taahhüt edilen entegrasyon özelliklerini barındırmamaktadır ve sürekli çökme hatası vermektedir. Davalı şirkete gönderilen e-postalara ve Kadıköy 3. Noterliği'nin 15.03.2026 tarihli ihtarnamesine rağmen ayıplı hizmet giderilmemiştir.
-3- Bu nedenle TBK m. 125/2 uyarınca sözleşmeden dönme hakkımızı kullanıyor ve ödenen bedelin iadesini talep ediyoruz.
+Form üzerinden ilettiğiniz bilgiler:
+${prompt.split('--- INTERAKTİF PARAMETRELER ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
 
-HUKUKI NEDENLER: TKHK, TBK, HMK ve ilgili mevzuat.
-DELİLLER: Fatura, Noter İhtarnamesi, E-posta yazışmaları, Bilirkişi İncelemesi.
+Belirttiğiniz deliller:
+${prompt.split('--- DELİL VE BELGE LİSTESİ ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
 
-NETİCE-İ TALEP: Haklı davamızın kabulü ile, ayıplı hizmet bedeli olan 45.000 TL'nin ödeme tarihi olan 12.02.2026'dan itibaren işleyecek avans faiziyle birlikte davalıdan tahsiline karar verilmesini talep ederiz.
+Ek Açıklamalarınız:
+${prompt.split('--- EK AÇIKLAMALAR VE OLAYLAR ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
+
+HUKUKI NEDENLER: HMK, TBK ve ilgili tüm yasal mevzuat.
+DELİLLER: Yukarıda belirttiğiniz tüm delil ve belgeler, Yargıtay emsal kararları, tanık beyanları ve bilirkişi incelemesi.
+
+NETİCE-İ TALEP: İzah edilen nedenler ve yasal mevzuat uyarınca; haklı davamızın kabulüne, yargılama giderleri ile vekâlet ücretinin davalı tarafa yükletilmesine karar verilmesini vekâleten arz ve talep ederiz.
 
 Davacı Vekili
-Av. Kerem Soylu
+Avukat
 (İmza)`;
 
     case "ACADEMY":
@@ -674,7 +684,21 @@ Cezai şart, mevcut bir borcun ifasını güvence altına almak veya sözleşmey
 
     default:
       if (pLower.includes('dilekçe') || pLower.includes('ihtarname') || pLower.includes('mahkeme')) {
-        return `NÖBETÇİ MAHKEME HAKİMLİĞİ'NE\n\nDAVACI: [Müvekkil Adı]\nDAVALI: [Karşı Taraf Adı]\n\nKONU: Hukuki taleplerimizin kabulü ve alacaklarımızın tahsili talebidir.\n\nAÇIKLAMALAR:\n1. Müvekkil, davalı taraf ile akdedilen hukuki ilişki çerçevesinde edimlerini tam olarak yerine getirmiştir.\n2. Davalı taraf ise yükümlülüklerine aykırı davranarak müvekkili zarara uğratmıştır.\n\nHUKUKİ SEBEPLER: HMK, TBK ve ilgili yasal mevzuat.\nDELİLLER: Sözleşme, ihtarname, banka dekontları, tanık beyanları.\n\nNETİCE-İ TALEP: Haklı davamızın kabulü ile alacaklarımızın tahsiline karar verilmesini talep ederiz.`;
+        return `NÖBETÇİ MAHKEME HAKİMLİĞİ'NE
+
+DAVACI: [Müvekkil Adı]
+DAVALI: [Karşı Taraf Adı]
+
+KONU: Hukuki taleplerimizin kabulü ve alacaklarımızın tahsili talebidir.
+
+AÇIKLAMALAR:
+1. Müvekkil, davalı taraf ile akdedilen hukuki ilişki çerçevesinde edimlerini tam olarak yerine getirmiştir.
+2. Davalı taraf ise yükümlülüklerine aykırı davranarak müvekkili zarara uğratmıştır.
+
+HUKUKİ SEBEPLER: HMK, TBK ve ilgili yasal mevzuat.
+DELİLLER: Sözleşme, ihtarname, banka dekontları, tanık beyanları.
+
+NETİCE-İ TALEP: Haklı davamızın kabulü ile alacaklarımızın tahsiline karar verilmesini talep ederiz.`;
       }
       return "Hukuki asistan başarıyla yanıtladı. İlgili evrakları düzenleyip davanıza ekleyebilirsiniz.";
   }
