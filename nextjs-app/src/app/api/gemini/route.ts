@@ -1,5 +1,8 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 
 // In-Memory AI Cache to avoid duplicate API calls for identical requests
 const apiCache = new Map<string, { response: any; timestamp: number }>();
@@ -66,14 +69,15 @@ async function callGemini(prompt: string, modelName: string, systemInstruction?:
   if (!apiKey || apiKey === 'your_gemini_api_key_here' || apiKey.trim() === '') {
     throw new Error('Gemini API key is not configured');
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    systemInstruction: systemInstruction || "Sen profesyonel bir Hukuk Yapay Zekasısın. Cevapların kısa, net, teknik, hukuki, gereksiz cümlesiz ve maddeler halinde olsun."
+  const google = createGoogleGenerativeAI({
+    apiKey: apiKey,
   });
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return response.text();
+  const result = await generateText({
+    model: google(modelName),
+    prompt: prompt,
+    system: systemInstruction || "Sen profesyonel bir Hukuk Yapay Zekasısın. Cevapların kısa, net, teknik, hukuki, gereksiz cümlesiz ve maddeler halinde olsun."
+  });
+  return result.text;
 }
 
 // Function to call the OpenAI GPT API
