@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       if (isSimulationRequest) {
         // Generate customized JSON case simulation report
         const title = extractField(prompt, 'Uyuşmazlık Başlığı') || 'Belirsiz Alacak ve Tazminat Davası';
-        const clientName = extractField(prompt, 'Müvekkil') || 'Ahmet Alkan';
+        const clientName = extractField(prompt, 'Müvekkil') || '[Müvekkil Adı]';
         const category = extractField(prompt, 'Kategori') || 'İş Hukuku';
         const description = extractField(prompt, 'Olay Açıklaması') || 'İş sözleşmesi ihbar önellerine ve yasal kurallara uyulmadan haksız feshedilmiştir.';
         
@@ -182,32 +182,27 @@ export async function POST(request: Request) {
     - Analitik, tarafsız, kanıt temelli, profesyonel, empatik ve güven verici ol.
     - Gereksiz teknik terim kullanma, açık ve anlaşılır ol.
     
-    ANALİZ SÜRECİ (Cevap vermeden önce mutlaka bu adımları düşün):
+    ANALİZ SÜRECİ:
     - Kullanıcının sorusunun amacını belirle.
-    - İlgili hukuk dalını tespit et.
-    - Bilgi eksikliği (tarih, şirket, taraflar, delil durumu vb.) var mı kontrol et.
-    - Eğer bilgi eksikse, analizini yapmadan önce kullanıcıya eksik olanları net bir şekilde sor.
-    - Yeterli bilgiye sahipsen, sistematik hukuki değerlendirme yap.
-    
-    KURALLAR:
+    - Bilgi eksikliği varsa sor, ASLA varsayım yapma.
     - İsim, tarih, şirket, para, mahkeme gibi bilgileri ASLA uydurma.
-    - "Dosyaya eklendi" gibi sistem mesajlarını sadece gerçekten işlem yapıldığında kullan.
     
-    CEVAP YAPISI (Her zaman bu başlıkları kullan):
-    1. Olayın Özeti (Kullanıcının anlattığını kısa ve doğru özetle)
-    2. İlk Hukuki Değerlendirme
-    3. İlgili Mevzuat
-    4. İlgili Maddeler
-    5. Yargıtay
-    6. Danıştay
-    7. AYM
-    8. AİHM
-    9. Muhtemel Riskler
-    10. Alternatif Çözüm
-    11. İzlenecek Yol Haritası
-    12. Tahmini Başarı Oranı
-    13. Eksik Belgeler (Eksikse belirt ve iste)
-    14. Sonraki Adım (Yönlendirme yap: dilekçe, belge analizi, dava simülasyonu vb.)`;
+    CEVAP YAPISI (Her zaman tam olarak bu şablonu kullan, başka bir şey ekleme):
+    ⚖️ Hukuki Ön Değerlendirme
+    • Konu
+    • İlgili Hukuk Dalı
+    • Olay Analizi
+    • Eksik Bilgiler
+    • Önerilen İşlem
+    • Gerekli Belgeler
+    • Hukuki Riskler
+    • Sonraki Adım
+    
+    Lütfen cevabını verirken bu şablona tam olarak uy.
+    Cevabının sonuna her zaman aşağıdaki metni ekle:
+    
+    İşlem Kartları:
+    [📄 Dilekçe Hazırla] [📂 Evrak Listesi] [⚖️ Dava Simülasyonu] [📚 İlgili Kanunlar] [🔍 Yargıtay Kararları]`;
 
       try {
         if (routing.modelType === 'GPT_AND_GEMINI' && isGeminiAvailable && isOpenAiAvailable) {
@@ -269,7 +264,7 @@ Lütfen yukarıdaki iki cevabın en güvenli, doğru ve teknik sentezini tek bir
         // Fallback gracefully to Turkish legal simulator
         if (isSimulationRequest) {
           const title = extractField(prompt, 'Uyuşmazlık Başlığı') || 'Belirsiz Alacak ve Tazminat Davası';
-          const clientName = extractField(prompt, 'Müvekkil') || 'Ahmet Alkan';
+          const clientName = extractField(prompt, 'Müvekkil') || '[Müvekkil Adı]';
           const category = extractField(prompt, 'Kategori') || 'İş Hukuku';
           const description = extractField(prompt, 'Olay Açıklaması') || 'İş sözleşmesi ihbar önellerine ve yasal kurallara uyulmadan haksız feshedilmiştir.';
           finalResponseText = generateCustomSimulationJson(title, clientName, category, description);
@@ -559,371 +554,6 @@ function generateCustomSimulationJson(title: string, clientName: string, categor
 
 // Function to generate high-quality context-aware Turkish legal mock outputs
 function getMockLegalAiResponse(prompt: string, taskType: string): string {
-  const pLower = prompt.toLowerCase();
-
-  switch (taskType) {
-    case "CASE_SIMULATION":
-      return `{
-        "timeline": [
-          {"date": "10.01.2026", "title": "İş Sözleşmesinin İmzalanması", "description": "Müvekkil haftalık 45 saat çalışma esası ve asgari ücret + prim usulüyle göreve başlamıştır."},
-          {"date": "15.03.2026", "title": "Mesai Artışı & Ödeme İhlali", "description": "İşveren talimatıyla haftalık 15 saat fazla mesai yapılmış, fakat banka kayıtlarında mesai ücreti ödenmemiştir."},
-          {"date": "01.06.2026", "title": "Mayıs Maaşının Eksik Ödenmesi", "description": "Mayıs ayı net maaşında işveren tarafından haksız kesinti yapılmıştır."},
-          {"date": "30.06.2026", "title": "Haksız Fesih & İhtarname", "description": "Müvekkil alacaklarını talep ettikten sonra haklı neden olmaksızın sözlü olarak işten çıkarılmıştır."}
-        ],
-        "claims": {
-          "plaintiff": [
-            "İş sözleşmesinin haklı neden olmaksızın ve ihbar önellerine uyulmadan feshedilmesi.",
-            "Çalışma süresi boyunca hak edilen toplam 180 saatlik fazla mesai ücretinin ödenmemiş olması.",
-            "Mayıs ayı maaşında yapılan 3.500 TL tutarındaki haksız kesintinin iadesi."
-          ],
-          "defendant": [
-            "Çalışanın performans yetersizliği ve uyarılara rağmen devamsızlık yapması.",
-            "Fazla mesai yapılmasına dair iş yeri yönetiminin yazılı talimatı veya imzasının olmaması.",
-            "Tüm maaş ödemelerinin banka kanalıyla ve eksiksiz yapıldığını gösteren dekontlar."
-          ]
-        },
-        "swot": {
-          "strengths": [
-            "Islak imzalı resmi iş sözleşmesinin varlığı.",
-            "Fazla mesai saatlerini ve iş yeri emirlerini açıkça gösteren yönetici WhatsApp yazışmaları.",
-            "Mayıs ayı banka dekontundaki eksik ödemenin tespiti."
-          ],
-          "weaknesses": [
-            "Fazla çalışmanın başlangıç gününe ait net yazılı kayıt bulunmaması.",
-            "Resmi giriş-çıkış kart okuyucu kayıtlarının sunulmamış olması."
-          ],
-          "opportunities": [
-            "Zorunlu arabuluculuk sürecinde işverenle hızlı bir uzlaşıya varılarak 15 gün içinde tahsilat imkanı.",
-            "Emsal Yargıtay kararlarının davacı lehine yerleşik içtihat oluşturması."
-          ],
-          "threats": [
-            "Karşı tarafın devamsızlık tutanaklarını sahte tanıklarla destekleme ve davayı uzatma çabası."
-          ]
-        },
-        "legalSources": [
-          {"source": "4857 Sayılı İş Kanunu m. 17 (İhbar Tazminatı)", "content": "Bildirim şartına uymayan taraf, bildirim süresine ilişkin ücret tutarında tazminat ödemek zorundadır."},
-          {"source": "4857 Sayılı İş Kanunu m. 41 (Fazla Çalışma Ücreti)", "content": "Haftalık kırkbeş saati aşan çalışmalar fazla çalışmadır. Her bir saat fazla çalışma için verilecek ücret normal çalışma ücretinin yüzde elli yükseltilmesiyle ödenir."},
-          {"source": "Yargıtay Hukuk Genel Kurulu E. 2020/22-104", "content": "WhatsApp görüşmeleri, elektronik ortamda delil başlangıcı niteliğindedir ve tanık anlatımlarıyla desteklendiğinde kesin delil teşkil eder."}
-        ],
-        "draftPetition": "NÖBETÇİ İŞ MAHKEMESİ HAKİMLİĞİ'NE\
-\
-DAVACI: [Müvekkil Adı]\
-DAVALI: [İşveren Şirket Adı]\
-\
-KONU: Kıdem tazminatı, ihbar tazminatı, ödenmeyen fazla mesai ve eksik maaş alacaklarının faiziyle tahsili talebidir.\
-\
-AÇIKLAMALAR:\
-1. Müvekkil, davalı şirkette 10.01.2026 - 30.06.2026 tarihleri arasında çalışmıştır.\
-2. İş akdi, hiçbir haklı sebep gösterilmeksizin tek taraflı feshedilmiştir. Çalışma süresince fazla mesai yaptırılmış fakat ödenmemiştir.\
-3. Sunduğumuz WhatsApp yazışmaları ve hesap hareketleri iddialarımızı açıkça ispatlamaktadır.\
-\
-HUKUKİ DELİLLER: İş sözleşmesi, WhatsApp konuşma kayıtları, Banka dekontları, SGK Hizmet Dökümü, Emsal Kararlar, Tanık.\
-\
-NETİCE-İ TALEP: Haklı davamızın kabulü ile kıdem, ihbar, fazla çalışma ve eksik maaş alacaklarımızın yasal faiziyle tahsiline karar verilmesini talep ederiz.\
-\
-Saygılarımızla,\
-Davacı Vekili"
-      }`;
-
-    case "DOCUMENT_ANALYSIS":
-      return `{
-        "riskScore": 78,
-        "riskLevel": "HIGH",
-        "riskDescription": "Sözleşmede yer alan 5 yıllık rekabet yasağı Türk Borçlar Kanunu'na göre coğrafi alan ve süre sınırı aşımı sebebiyle kısmen geçersizdir. Ayrıca çalışan aleyhine tek taraflı ağır cezai şart (100.000 USD) konulmuştur. Bu durumun karşılıklılık ilkesine göre dengelenmesi şarttır. İmza alanında şirket yetkilisinin imza sirkülerinin eklenmemiş olması usuli risk taşımaktadır."
-      }`;
-
-    case "LEGAL_SEARCH":
-      return generateDynamicLegalSearchResponse(prompt);
-
-    case "PETITION_DRAFT":
-      return `NÖBETÇİ MAHKEME HAKİMLİĞİ'NE
-
-DAVACI: [Müvekkil Adı/Unvanı]
-DAVALI: [Karşı Taraf Adı/Unvanı]
-
-KONU: Yukarıda belirttiğiniz parametreler ve olay örgüsü doğrultusunda dava açılması talebidir.
-
-AÇIKLAMALAR:
-Form üzerinden ilettiğiniz bilgiler:
-${prompt.split('--- INTERAKTİF PARAMETRELER ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
-
-Belirttiğiniz deliller:
-${prompt.split('--- DELİL VE BELGE LİSTESİ ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
-
-Ek Açıklamalarınız:
-${prompt.split('--- EK AÇIKLAMALAR VE OLAYLAR ---')[1]?.split('---')[0]?.trim() || 'Sistem tarafından işleniyor...'}
-
-HUKUKI NEDENLER: HMK, TBK ve ilgili tüm yasal mevzuat.
-DELİLLER: Yukarıda belirttiğiniz tüm delil ve belgeler, Yargıtay emsal kararları, tanık beyanları ve bilirkişi incelemesi.
-
-NETİCE-İ TALEP: İzah edilen nedenler ve yasal mevzuat uyarınca; haklı davamızın kabulüne, yargılama giderleri ile vekâlet ücretinin davalı tarafa yükletilmesine karar verilmesini vekâleten arz ve talep ederiz.
-
-Davacı Vekili
-Avukat
-(İmza)`;
-
-    case "ACADEMY":
-      return `### 🎓 Ders: Türk Hukukunda Sözleşmesel Cezai Şart (TBK m. 179-182)
-
-Hoş geldiniz meslektaşlarım! Bugün Türk Borçlar Kanunu kapsamında ticari ve hukuki işlerde en sık kullandığımız müesseselerden biri olan **Cezai Şart (Ceza Koşulu)** konusunu ele alacağız.
-
-#### 1. Cezai Şart Nedir?
-Cezai şart, mevcut bir borcun ifasını güvence altına almak veya sözleşmeye aykırılığı cezalandırmak amacıyla borçlunun, alacaklıya karşı üstlendiği ekonomik bir edimdir.
-
-#### 2. Türleri Nelerdir?
-* **Seçimlik Cezai Şart (TBK 179/1):** Alacaklı, borcun ifasını veya cezanın ödenmesini isteyebilir. İkisini birden isteyemez.
-* **İfaya Eklenen Cezai Şart (TBK 179/2):** Alacaklı, hem borcun ifasını hem de cezanın ödenmesini talep edebilir. (En sık karşılaşılan türdür, örn: gecikilen her gün için 1.000 TL ceza ödenmesi).
-
-#### 3. Mini Pratik Test
-1. **Soru:** Hakim, tarafların belirlediği fahiş cezai şartı kendiliğinden (re'sen) indirebilir mi?
-   * *Cevap:* Evet, TBK m. 182/3 uyarınca hakim aşırı gördüğü ceza koşulunu kendiliğinden indirmekle yükümlüdür. Tacirler için bu kuralın istisnaları mevcuttur (TTK m. 22).
-2. **Soru:** İşçi aleyhine konulan tek taraflı cezai şart geçerli midir?
-   * *Cevap:* Hayır, Yargıtay içtihatlarına göre iş sözleşmelerinde sadece işçi aleyhine konulan tek taraflı cezai şart mutlak olarak geçersizdir.
-3. **Soru:** Cezai şart talep etmek için zarar şart mıdır?
-   * *Cevap:* Hayır, alacaklı zarara uğramamış olsa bile ceza koşulunun ödenmesini isteyebilir.`;
-
-    default:
-      if (pLower.includes('dilekçe') || pLower.includes('ihtarname') || pLower.includes('mahkeme')) {
-        return `NÖBETÇİ MAHKEME HAKİMLİĞİ'NE
-
-DAVACI: [Müvekkil Adı]
-DAVALI: [Karşı Taraf Adı]
-
-KONU: Hukuki taleplerimizin kabulü ve alacaklarımızın tahsili talebidir.
-
-AÇIKLAMALAR:
-1. Müvekkil, davalı taraf ile akdedilen hukuki ilişki çerçevesinde edimlerini tam olarak yerine getirmiştir.
-2. Davalı taraf ise yükümlülüklerine aykırı davranarak müvekkili zarara uğratmıştır.
-
-HUKUKİ SEBEPLER: HMK, TBK ve ilgili yasal mevzuat.
-DELİLLER: Sözleşme, ihtarname, banka dekontları, tanık beyanları.
-
-NETİCE-İ TALEP: Haklı davamızın kabulü ile alacaklarımızın tahsiline karar verilmesini talep ederiz.`;
-      }
-      return "Hukuki asistan başarıyla yanıtladı. İlgili evrakları düzenleyip davanıza ekleyebilirsiniz.";
-  }
-}
-
-// Highly comprehensive Turkish Legal Search response generator with zero duplication
-function generateDynamicLegalSearchResponse(query: string): string {
-  const q = query.toLowerCase();
-  
-  // Categorization based on search queries
-  let category = "Genel Borçlar ve Ticaret Hukuku";
-  let laws = "6098 Sayılı Türk Borçlar Kanunu (TBK), 6100 Sayılı Hukuk Muhakemeleri Kanunu (HMK)";
-  let articles = [
-    "TBK Madde 112: Borcun hiç veya gereği gibi ifa edilmemesinin hukuki sonuçları ve tazminat.",
-    "HMK Madde 190: İspat yükünün dağılımı ve tarafların iddialarını kanıtlama mükellefiyeti.",
-    "TMK Madde 2: Herkesin haklarını kullanırken dürüstlük kuralına uyması zorunluluğu."
-  ];
-  let courts = {
-    yargitay: "Yargıtay Hukuk Genel Kurulu E. 2023/11-450 K. 2023/890 (Bu bilgi doğrulanmalıdır.) - Sözleşmesel edimlerin dürüstlük kuralı çerçevesinde ifa edilmesi ve hakkın kötüye kullanılması yasağı.",
-    danistay: "Danıştay 13. Daire E. 2022/1045 K. 2023/200 (Bu bilgi doğrulanmalıdır.) - İdari sözleşmelerdeki cezai şartların ve kamu ihale hukuku yaptırımlarının ölçülülük ilkesi kapsamında denetimi.",
-    aym: "AYM Bireysel Başvuru No: 2021/18450 (Bu bilgi doğrulanmalıdır.) - Mülkiyet hakkının korunması ve adil yargılanma hakkı kapsamında yargılamaların makul sürede tamamlanması.",
-    aihm: "AİHM Ali/Türkiye Başvurusu No: 34500/19 (Bu bilgi doğrulanmalıdır.) - Adil yargılanma güvencesi (Sözleşmenin 6. maddesi) kapsamında gerekçeli karar hakkının ihlali tespiti."
-  };
-  let doctrine = "Prof. Dr. Kemal Oğuzman ve Prof. Dr. Turgut Akıntürk'ün Borçlar Hukuku doktrin mütalaalarına göre; edim yükümlülüğünün ihlali halinde talep edilecek cezai şartların hakkaniyet ve nispilik ilkelerine uygun olarak tanzim edilmesi gerekir. Karşıt görüşler ise sözleşme serbestisinin asıl olduğunu savunur.";
-  let counterOpinion = "Sözleşme serbestisi ilkesi (Anayasa m. 48) çerçevesinde, taraflar kanunun emredici hükümlerine aykırı olmamak kaydıyla cezai şartı ve sözleşme koşullarını serbestçe belirleyebilirler. Tacirler için TBK m. 182/3'teki tenkis (indirim) kuralı uygulanamayacağından, sözleşme hükümleri aynen geçerli kabul edilmelidir.";
-  let risks = [
-    "Sözleşmenin şekil şartlarına (örneğin yazılılık veya resmi şekil) aykırı yapılması durumunda geçersizlik riski.",
-    "Karşı tarafın yetki ve zamanaşımı itirazları sunarak davayı esastan önce usulden düşürme riski.",
-    "Sunulan dijital delillerin (WhatsApp, e-posta) sıhhatine itiraz edilmesi halinde bilirkişi incelemesinin gecikmesi."
-  ];
-  let application = [
-    "Öncelikle karşı tarafa borcun ifası veya ihlalin giderilmesi için noter kanalıyla en az 7 veya 15 günlük süre veren ihtarname keşide edin.",
-    "Dava şartı arabuluculuk kapsamında adliyeye başvurun ve uyuşmazlığın sulh yoluyla çözümü seçeneklerini değerlendirin.",
-    "Arabuluculukta anlaşma sağlanamazsa, tüm yazılı belgeler, banka kayıtları ve elektronik yazışmalarla birlikte yetkili mahkemede dava açın."
-  ];
-  let conclusion = "Mevcut yasal çerçeve, emsal Yargıtay kararları ve sunulacak delillerin gücü muvacehesinde, uyuşmazlığın lehe sonuçlanma ihtimali yüksek olmakla birlikte usuli sürelerin ve şekil şartlarının eksiksiz takibi hayati öneme sahiptir.";
-
-  if (q.includes("kira") || q.includes("tahliye") || q.includes("ev sahibi") || q.includes("kiracı") || q.includes("mülk") || q.includes("konut")) {
-    category = "Kira ve Gayrimenkul Hukuku";
-    laws = "6098 Sayılı Türk Borçlar Kanunu (TBK) - Konut ve Çatılı İşyeri Kiraları, 6100 Sayılı Hukuk Muhakemeleri Kanunu (HMK)";
-    articles = [
-      "TBK Madde 344: Kira bedelinin belirlenmesi ve TÜFE tüketici fiyat endeksindeki artış sınırına tabi olması.",
-      "TBK Madde 350: Kiraya verenin gereksinim, yeniden inşa ve imar amacıyla kira sözleşmesini sonlandırma ve tahliye dava hakkı.",
-      "TBK Madde 352: Kiracının tahliye taahhütnamesi vermesi, kira bedelini zamanında ödememesi nedeniyle iki haklı ihtar veya fuzuli işgal halleri."
-    ];
-    courts.yargitay = "Yargıtay 3. Hukuk Dairesi E. 2023/1420 K. 2023/5890 (Bu bilgi doğrulanmalıdır.) - Kira tespit davalarında 5 yıllık sürenin dolmasından sonra emsal kira bedellerine göre hakkaniyet indirimi yapılarak kira bedelinin tespiti gerektiği yönünde yerleşik içtihat.";
-    courts.danistay = "Danıştay 10. Daire E. 2021/890 K. 2022/450 (Bu bilgi doğrulanmalıdır.) - Çevre ve Şehircilik Bakanlığı'nın kira yardımları ve kentsel dönüşüm kira muafiyetlerine ilişkin idari işlemlerin denetimi.";
-    courts.aym = "AYM Bireysel Başvuru No: 2020/4520 (Bu bilgi doğrulanmalıdır.) - Kira bedelinin fahiş şekilde artırılmasını sınırlayan geçici yasal düzenlemelerin mülkiyet hakkı ve sözleşme hürriyeti sınırları içerisinde anayasallık denetimi.";
-    courts.aihm = "AİHM Hutten-Czapska/Polonya Başvurusu No: 35014/97 (Bu bilgi doğrulanmalıdır.) - Kira tavan fiyatı uygulamalarının mülkiyet hakkını (Sözleşmeye Ek 1 Nolu Protokol) ölçüsüz olarak zedelediğine dair emsal ihlal kararı.";
-    doctrine = "Prof. Dr. Cevdet Yavuz'un Borçlar Özel Hukuku eserine göre; konut kiralarında kiracıyı koruma ilkesi (favor debitoris) asıldır. Ancak 5 yıllık süre dolduğunda kiraya verenin rayiç bedeli talep etmesi yasal bir haktır ve bu hak sınırlandırılamaz. Karşıt görüşler, mülkiyet hakkının mutlak olarak korunması gerektiğini savunur.";
-    counterOpinion = "Kira artış oranlarına getirilen %25'lik yasal tavan sınırlamasının, mülk sahibinin mülkiyet hakkını ve serbest piyasa koşullarını zedelediği; enflasyonist ortamlarda mülk sahibinin mağduriyetine yol açtığı yönünde doktrinel ve pratik itirazlar mevcuttur.";
-    risks = [
-      "Tahliye taahhütnamesinde tanzim ve tahliye tarihlerinin boş bırakılarak kiracıya imzalatılmasının taahhütnameyi geçersiz kılabilmesi riski.",
-      "Kira tespit davasının yeni kira döneminden en az 30 gün önce açılmaması veya ihtarname çekilmemesi halinde, tespit edilen kira bedelinin bir sonraki dönem için geçerli olması riski.",
-      "Kira farkı alacaklarının takibinde 10 yıllık zamanaşımı süresinin aşılması."
-    ];
-    application = [
-      "Kiracının eksik ödemeleri veya tahliyesi için öncelikle uyuşmazlığın büyüklüğüne göre İcra Müdürlüğü kanalıyla Örnek No: 13 ödeme emri gönderin.",
-      "Kira tespit veya uyarlama davası açmadan önce 01.09.2023 tarihi itibariyle zorunlu olan Arabuluculuk bürosuna müracaat edin.",
-      "Arabuluculukta anlaşma sağlanamazsa, Sulh Hukuk Mahkemesi nezdinde tahliye veya kira tespit davası ikame edin."
-    ];
-    conclusion = "Kira ve gayrimenkul uyuşmazlıklarında yasal süreler ve ihtarlar (özellikle tahliye taahhüdü ve haklı ihtarlar) şekle sıkı sıkıya bağlıdır. İhtarların noter kanalıyla usulüne uygun ve süresinde yapılması uyuşmazlığın lehe sonuçlanmasını sağlayacaktır.";
-  } else if (q.includes("kıdem") || q.includes("ihbar") || q.includes("işçi") || q.includes("işveren") || q.includes("mesai") || q.includes("tazminat") || q.includes("izin") || q.includes("iş davası") || q.includes("iş kanunu")) {
-    category = "İş ve Sosyal Güvenlik Hukuku";
-    laws = "4857 Sayılı İş Kanunu, 5510 Sayılı Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu, 6100 Sayılı Hukuk Muhakemeleri Kanunu (HMK)";
-    articles = [
-      "4857 Sayılı İş Kanunu Madde 17: İhbar önelleri, bildirim şartı ve bildirim süresine ait ücret tutarında ihbar tazminatı yükümlülüğü.",
-      "4857 Sayılı İş Kanunu Madde 24/II-e: İşçinin, ücretinin kanun hükümleri veya sözleşme şartlarına uygun olarak hesap edilmemesi veya ödenmemesi halinde haklı nedenle derhal fesih hakkı.",
-      "4857 Sayılı İş Kanunu Madde 41: Haftalık 45 saati aşan çalışmaların fazla çalışma sayılması ve saatlik ücretin %50 zamlı ödenmesi mecburiyeti."
-    ];
-    courts.yargitay = "Yargıtay 9. Hukuk Dairesi E. 2023/12045 K. 2023/18900 (Bu bilgi doğrulanmalıdır.) - İşçinin imzasını taşımayan veya banka kayıtlarıyla çelişen ücret bordrolarının geçersiz olduğu, fazla mesainin WhatsApp yazışmaları ve tanık beyanlarıyla kanıtlanabileceği yönünde emsal karar.";
-    courts.danistay = "Danıştay 12. Daire E. 2022/4500 K. 2023/1200 (Bu bilgi doğrulanmalıdır.) - Kamuda çalışan taşeron işçilerin kadroya geçiş işlemleri ve sosyal haklarına ilişkin idari tasarrufların iptali taleplerinin denetimi.";
-    courts.aym = "AYM Bireysel Başvuru No: 2020/1204 (Bu bilgi doğrulanmalıdır.) - İşçinin iş sözleşmesinin sendikal nedenlerle feshedilmesi ve ifade özgürlüğü kapsamında sendikal tazminat haklarının Anayasal adil yargılanma boyutu.";
-    courts.aihm = "AİHM Barbulescu/Romanya Başvurusu No: 61496/08 (Bu bilgi doğrulanmalıdır.) - İşverenin, çalışanın kişisel internet ve mesajlaşma yazışmalarını izlemesinin özel hayata ve haberleşme hürriyetine (Sözleşmenin 8. maddesi) aykırılık teşkil ettiği tespiti.";
-    doctrine = "Prof. Dr. Sarper Süzek'in İş Hukuku doktrinine göre; iş hukukunda 'işçinin korunması' ve 'işçi lehine yorum' ilkeleri esastır. Fazla mesai alacaklarında ispat yükü davacı işçide olmakla birlikte, işverenin ücreti ödediğini yazılı belgeyle ispatlaması şarttır. Karşıt görüşler, işveren üzerindeki ispat yükünün ölçüsüz ağırlaştırılmaması gerektiğini belirtir.";
-    counterOpinion = "İşverenin, işyerindeki fazla mesaileri onaylamadı, işçinin kendi insiyatifiyle işyerinde kaldığı ve mesai takip çizelgelerinde imzasının bulunmadığı durumlarda fazla çalışma tazminatına hükmedilmemesi gerektiği savunulmaktadır.";
-    risks = [
-      "Maaş bordrolarının ihtirazi kayıtsız (itirazsız) imzalanması durumunda, bordroda yazan fazla mesai saatinden daha fazlasının iddia edilememesi riski.",
-      "Fesih tarihinden itibaren kıdem ve ihbar tazminatı alacaklarında 5 yıllık zamanaşımı süresinin kaçırılması.",
-      "İş sözleşmesinin işçi tarafından haklı sebep olmaksızın feshi durumunda kıdem tazminatı hakkının tamamen yitirilmesi."
-    ];
-    application = [
-      "İş akdinin feshinden veya alacakların ödenmemesinden sonra derhal bağlı bulunulan adliyenin Arabuluculuk Bürosuna başvurun.",
-      "Arabuluculuk görüşmelerinde uzlaşılamaması halinde adliyeden 'Anlaşmazlık Tutanağı'nı ıslak imzalı teslim alın.",
-      "HMK ve İş Mahkemeleri Kanunu uyarınca yetkili İş Mahkemesinde (işyerinin bulunduğu veya davalı işverenin yerleşim yeri) alacak davası açın."
-    ];
-    conclusion = "İş davalarında elektronik deliller (WhatsApp, e-posta, mesai takip kayıtları) ve tutarlı tanık beyanları hayati öneme sahiptir. İşçinin haklı nedenle feshi, yazılı ihtarname ile sabitlenmelidir.";
-  } else if (q.includes("boşanma") || q.includes("velayet") || q.includes("nafaka") || q.includes("aile") || q.includes("eş")) {
-    category = "Aile ve Şahsın Hukuku";
-    laws = "4721 Sayılı Türk Medeni Kanunu (TMK), 6100 Sayılı Hukuk Muhakemeleri Kanunu (HMK)";
-    articles = [
-      "TMK Madde 166: Evlilik birliğinin, ortak hayatı sürdürmeleri kendilerinden beklenmeyecek derecede temelinden sarsılması durumunda boşanma davası hakkı.",
-      "TMK Madde 174: Boşanmaya sebep olan olaylar yüzünden mevcut veya beklenen menfaatleri haleldar olan kusursuz veya daha az kusurlu tarafın maddi ve manevi tazminat talebi.",
-      "TMK Madde 182: Mahkemenin, velayetin kullanılması kendisine verilmeyen eşin, çocuğun bakım ve eğitim giderlerine gücü oranında katılması için iştirak nafakasına hükmetmesi."
-    ];
-    courts.yargitay = "Yargıtay 2. Hukuk Dairesi E. 2023/4500 K. 2023/11200 (Bu bilgi doğrulanmalıdır.) - Boşanma davalarında eşlerin birbirine sadakat yükümlülüğü ihlalinin (güven sarsıcı davranışlar) kusur tespitinde öncelikli olduğu ve manevi tazminatın tarafların sosyal durumuna göre belirlenmesi gerektiği kararı.";
-    courts.danistay = "Danıştay 1. Daire E. 2020/120 K. 2021/300 (Bu bilgi doğrulanmalıdır.) - Aile ve Sosyal Hizmetler Bakanlığı'na bağlı sığınma evleri ve çocuk esirgeme kurumlarının idari işleyişine dair denetim esasları.";
-    courts.aym = "AYM Bireysel Başvuru No: 2018/14520 (Bu bilgi doğrulanmalıdır.) - Velayet davalarında çocuğun üstün yararı ilkesi gereğince idrak çağındaki çocuğun mahkemece bizzat dinlenmesi gerektiği, aksi durumun adil yargılanma ihlali oluşturduğu yönünde karar.";
-    courts.aihm = "AİHM Neulinger ve Shuruk/İsviçre Başvurusu No: 41615/07 (Bu bilgi doğrulanmalıdır.) - Uluslararası çocuk kaçırma ve velayet uyuşmazlıklarında Birleşmiş Milletler Çocuk Hakları Sözleşmesi ve çocuğun üstün yararının mutlak üstünlüğü tespiti.";
-    doctrine = "Prof. Dr. Turgut Akıntürk'ün Aile Hukuku mütalaalarına göre; boşanma davasında kusur dağılımı tazminat ve nafaka miktarını doğrudan etkiler. Tamamen kusurlu olan eş lehine yoksulluk nafakasına hükmedilemez. Karşıt görüşler, nafaka hakkının sosyal bir güvence olduğunu ve kusurdan bağımsız değerlendirilmesi gerektiğini savunur.";
-    counterOpinion = "Süresiz nafaka uygulamasının adalete aykırı olduğu, evlilik süresi ve eşlerin yaş/istihdam durumuna göre nafakanın belirli bir süreyle sınırlandırılması gerektiği yönünde güçlü yasal reform talepleri ve doktrinel görüşler mevcuttur.";
-    risks = [
-      "Dava açıldıktan sonra eşlerin tekrar bir araya gelmesi veya aynı evde yaşamaya devam etmesinin geçmişteki kusurları affetmiş sayılma riski barındırması.",
-      "Gizli çekilmiş ses ve video kayıtlarının boşanma davasında 'hukuka aykırı delil' sayılarak dosyadan çıkarılması riski.",
-      "Velayet sahibinin çocuğu diğer eşe göstermemesi halinde velayetin değiştirilmesi davasıyla karşı karşıya kalabilmesi."
-    ];
-    application = [
-      "Anlaşmalı boşanma için en az 1 yıllık evlilik süresinin dolmuş olması şarttır; bu durumda ortak bir Boşanma Protokolü hazırlayıp imzalayın.",
-      "Çekişmeli boşanmada, iddia ettiğiniz vakıaları (şiddet, sadakatsizlik, hakaret) ispatlayacak tanık listesi, mesaj kayıtları ve resmi belgeleri hazırlayın.",
-      "Aile Mahkemesi sıfatıyla yetkili eşlerin son 6 aydır birlikte oturdukları yer mahkemesinde davayı açın."
-    ];
-    conclusion = "Aile davalarında usul kuralları ve sosyal inceleme raporları (SİR) çocuğun gelegesi ve nafaka miktarları açısından belirleyicidir. Duygusal beyanlar yerine somut vakıaların ispatına odaklanılmalıdır.";
-  } else if (q.includes("ceza") || q.includes("suç") || q.includes("savcı") || q.includes("hırsızlık") || q.includes("dolandırıcılık") || q.includes("hakaret") || q.includes("yaralama")) {
-    category = "Ceza ve İnfaz Hukuku";
-    laws = "5237 Sayılı Türk Ceza Kanunu (TCK), 5271 Sayılı Ceza Muhakemesi Kanunu (CMK)";
-    articles = [
-      "TCK Madde 21: Suçun oluşması için kastın varlığının şart olması, bilme ve isteme unsurlarının bir arada gerçekleşmesi mecburiyeti.",
-      "TCK Madde 125: Bir kimseye onur, şeref ve saygınlığını rencide edebilecek nitelikte somut bir fiil veya olgu isnat eden veya sövmek suretiyle hakaret eden kişinin cezalandırılması.",
-      "CMK Madde 141: Suç soruşturması veya kovuşturması sırasında kanun dışı yakalanan, tutuklanan veya hakları ihlal edilen kişilerin maddi ve manevi tazminat talebi."
-    ];
-    courts.yargitay = "Yargıtay Ceza Genel Kurulu E. 2022/4-150 K. 2023/45 (Bu bilgi doğrulanmalıdır.) - Ceza yargılamasında 'şüpheden sanık yararlanır' (in dubio pro reo) ilkesinin mutlak olduğu, kesin ve inandırıcı delil bulunmadan mahkumiyet kararı verilemeyeceği yönünde emsal karar.";
-    courts.danistay = "Danıştay 10. Daire E. 2020/1200 K. 2021/800 (Bu bilgi doğrulanmalıdır.) - Disiplin cezalarının ve memuriyetten çıkarma işlemlerinin ceza hukuku ilkeleri ve adil yargılanma esasları kapsamında yargısal denetimi.";
-    courts.aym = "AYM Bireysel Başvuru No: 2019/18420 (Bu bilgi doğrulanmalıdır.) - Gözaltı ve tutukluluk süreçlerinde kişi hürriyeti ve güvenliği hakkının ihlal edildiği, makul şüphe olmadan özgürlükten yoksun bırakılamayacağı yönünde ihlal kararı.";
-    courts.aihm = "AİHM Salduz/Türkiye Başvurusu No: 36391/02 (Bu bilgi doğrulanmalıdır.) - Kollukta müdafi (avukat) yardımı sağlanmadan alınan ifadelerin mahkumiyete esas alınmasının adil yargılanma hakkını (Sözleşmenin 6/3-c maddesi) ihlal ettiği yönünde tarihi karar.";
-    doctrine = "Prof. Dr. Bahri Öztürk'ün Ceza Muhakemesi Hukuku eserine göre; ceza davasında maddi gerçeğe ulaşmak asıldır. Ancak maddi gerçeğe sadece hukuka uygun elde edilmiş delillerle ulaşılabilir. Karşıt görüşler, toplum güvenliği için bazı usuli eksikliklerin mahkumiyete engel olmaması gerektiğini savunur.";
-    counterOpinion = "Maddi gerçeğin araştırılması ilkesinin mutlak olduğu, basit usul hatalarının ağır suçlarda cezasızlığa yol açmaması gerektiği yönünde kamu güvenliği odaklı doktrinel görüşler bulunmaktadır.";
-    risks = [
-      "Kollukta müdafi olmaksızın verilen ve işkence/baskı altında alındığı iddia edilen ifadelerin hakim karşısında reddedilmemesi durumunda mahkumiyet riski.",
-      "Hukuka aykırı arama ve el koyma işlemleri neticesinde elde edilen delillerin (örneğin izinsiz ses kaydı) mahkemece delil olarak kabul edilmesi riski.",
-      "Şikayete tabi suçlarda 6 aylık hak düşürücü sürenin geçirilmesi durumunda soruşturma açılması hakkının kaybolması."
-    ];
-    application = [
-      "Şikayete tabi uyuşmazlıklarda, fiilin ve failin öğrenildiği tarihten itibaren en geç 6 ay içinde Cumhuriyet Başsavcılığına şikayet dilekçesi verin.",
-      "Kolluk veya savcılık ifadesine mutlaka bir ceza avukatı (müdafi) eşliğinde katılarak haklarınızı (susma hakkı vb.) kullanın.",
-      "Mahkemece iddianamenin kabulüyle başlayan kovuşturma aşamasında, savunmanızı destekleyecek somut delil ve tanıkları mahkemeye sunun."
-    ];
-    conclusion = "Ceza yargılamasında şüpheden sanık yararlanır ilkesi ve delillerin hukuka uygunluğu esastır. Savunmanın profesyonel bir ceza avukatı eliyle yürütülmesi hak kayıplarını ve haksız mahkumiyetleri engelleyecektir.";
-  }
-
-  // To guarantee completely unique, non-repetitive responses, we inject random case variation!
-  const randomVariations = [
-    {
-      title: "Müvekkil Odaklı Stratejik Değerlendirme",
-      intro: "İşbu hukuki analiz, uyuşmazlığın müvekkil nezdindeki kazanımlarını azami düzeye çıkarmak amacıyla, yasal mevzuatın boşlukları ve karşı tarafın usuli eksiklikleri taranarak hazırlanmıştır. Savunma veya iddia stratejisi tamamen somut delil ikamesine dayandırılmaktadır.",
-      strategy: "Karşı tarafın tacir sıfatı, tacir olmanın getirdiği basiretli davranma yükümlülüğü (TTK m. 18/2) çerçevesinde değerlendirilmelidir. Sözleşmedeki boşluklar müvekkil lehine yorumlanacaktır."
-    },
-    {
-      title: "Yargıtay İçtihatları ve Hakkaniyet Odaklı Analiz",
-      intro: "Bu hukuki mütalaa, Yargıtay'ın en güncel ve yerleşik daire kararlarında benimsediği 'hakkaniyet ve dürüstlük kuralı' (TMK m. 2) çerçevesinde tanzim edilmiştir. Sadece kanunun lafzı değil, toplumsal adalet ve tarafların sosyo-ekonomik dengesi de analiz edilmiştir.",
-      strategy: "Cezai şartın fahişliği iddiası sunularak mahkemeden hakkaniyet indirimi (tenkis) talep edilmelidir. Bu talep davanın esastan reddi riskine karşı ikincil bir güvence oluşturacaktır."
-    },
-    {
-      title: "Usuli Süreler ve Prosedürel Hak Arama Perspektifi",
-      intro: "Analizimiz, Hukuk Muhakemeleri Kanunu'nun (HMK) emredici usul kurallarına ve hak düşürücü sürelere odaklanarak kurgulanmıştır. Unutulmamalıdır ki, 'usul esastan önce gelir' ve haklı olmak, davayı usulüne uygun yürütmeye bağlıdır.",
-      strategy: "İlk derece yargılamasındaki tüm delillerin toplanma usulü mercek altına alınmalı, hukuka aykırı delillerin dosyadan çıkarılması ilk celsede talep edilerek karşı tarafın ana ispat araçları çürütülmelidir."
-    },
-    {
-      title: "Alternatif Uyuşmazlık Çözümü ve Sulh Stratejisi",
-      intro: "İşbu değerlendirmede, uzun süren yargılama maliyetleri ve mahkemelerin iş yükü dikkate alınarak, uyuşmazlığın dostane yöntemlerle veya arabuluculuk yoluyla en hızlı şekilde çözülmesi stratejisi ön planda tutulmuştur.",
-      strategy: "Davanın açılmasıyla eş zamanlı olarak, karşı tarafa riskleri net bir dille anlatan 'sulha davet' mektubu gönderilmeli, yargılama harç ve masraflarından tasarruf edilerek %80 oranında başarı şansı elde edilmelidir."
-    }
-  ];
-
-  // Pick a variation based on the length of the query to ensure variation
-  const hash = query.length % randomVariations.length;
-  const variation = randomVariations[hash];
-
-  return `### 📝 ÖZET
-${variation.intro} Bu uyuşmazlık kapsamında yapılan ön incelemede, sunulan somut vakıaların ${category} kuralları çerçevesinde nitelendirilmesi gerekmiştir. Konuyla ilişkili yasal süreler, ispat yükü dengesi ve usuli güvenceler aşağıda detaylandırılmıştır.
-
-### ⚖️ KANUNİ DAYANAK
-Bu uyuşmazlığın çözümlenmesinde uygulanacak birincil yasal dayanaklar şunlardır:
-* **${laws}**
-* Türk Medeni Kanunu'nun (TMK) dürüstlük ve iyiniyet kurallarını düzenleyen hükümleri.
-* İlgili uyuşmazlığa temas eden Cumhurbaşkanlığı Kararları ve Resmî Gazete'de yayımlanan güncel tebliğ ve yönetmelikler.
-
-### 📌 İLGİLİ MADDELER
-Uyuşmazlık konusu olaya doğrudan uygulanabilecek temel kanun maddeleri ve içerikleri şu şekildedir:
-1. **${articles[0]}**
-2. **${articles[1]}**
-3. **${articles[2]}**
-
-### 🏛️ YARGITAY KARARLARI
-Yargıtay'ın konuya ilişkin yerleşik ve emsal teşkil eden görüşleri şöyledir:
-* **${courts.yargitay}**
-* Yargıtay İçtihadı Birleştirme Büyük Genel Kurulu'nun sözleşmesel yükümlülüklerin ifasına dair ilkesel kararları (Bu bilgi doğrulanmalıdır.).
-
-### ⚖️ DANIŞTAY KARARLARI
-İdari boyut ve kamu hukuku ilişkileri yönünden Danıştay kararları:
-* **${courts.danistay}**
-* Danıştay İdari Dava Daireleri Kurulu'nun idarenin sorumluluğu ve sözleşmelerin denetimine ilişkin güncel yaklaşımları.
-
-### 🗽 AYM (ANAYASA MAHKEMESİ)
-Anayasa Mahkemesi'nin bireysel başvuru kararları ve mülkiyet/adil yargılanma hakkı yorumları:
-* **${courts.aym}**
-* Anayasa Mahkemesi'nin hak arama özgürlüğü ve kanuni hakim güvencesine ilişkin temel haklar değerlendirmeleri.
-
-### 🇪🇺 AİHM (AVRUPA İNSAN HAKLARI MAHKEMESİ)
-Avrupa İnsan Hakları Sözleşmesi (AİHS) hükümleri ve AİHM emsal kararları:
-* **${courts.aihm}**
-* AİHM'in adil yargılanma hakkı kapsamında makul sürede yargılanma ve silahların eşitliği ilkelerine dair yerleşik kararları.
-
-### 📚 DOKTRİN
-Hukuk akademisyenlerinin ve doktrin makalelerinin konuya bakış açısı:
-* **${doctrine}**
-* İstanbul ve Ankara Baroları'nın yayımladığı akademik görüş raporları ve hukuki makalelerdeki ortak mütalaalar.
-
-### ⚖️ KARŞI GÖRÜŞ
-Savunma veya alternatif tezler kapsamında ileri sürülebilecek karşıt hukuki görüşler:
-* **${counterOpinion}**
-* Hakkaniyet prensibinin, sözleşmenin lafzının önüne geçemeyeceği ve ahde vefa (sözleşmeye bağlılık) ilkesinin mutlak korunması gerektiği savunması.
-
-### ⚠️ RİSKLER
-Yargılama sürecinde tarafların karşılaşabileceği en kritik usuli ve esasa ilişkin riskler:
-* **Risk 1:** ${risks[0]}
-* **Risk 2:** ${risks[1]}
-* **Risk 3:** ${risks[2]}
-
-### 🛠️ UYGULAMA
-Uyuşmazlığın çözümü ve hak kayıplarının önlenmesi için atılması gereken somut adımlar:
-1. **Adım 1:** ${application[0]}
-2. **Adım 2:** ${application[1]}
-3. **Adım 3:** ${application[2]}
-4. **Stratejik Seçenek:** ${variation.strategy}
-
-### 🎯 SONUÇ
-${conclusion} Yasal mütalaamız uyarınca, davanın usul kurallarına (özellikle süreler ve noter ihtarları) tam riayet edilerek ikame edilmesi durumunda başarı olasılığı son derece yüksektir. Profesyonel yardım alınması ve delillerin tarih sırasına göre dosyaya sunulması önerilmektedir.`;
+  // Empty production safe fallback response to prevent dummy data leaks
+  return "AI Sunucusuna bağlanılamadı. Lütfen tekrar deneyiniz.";
 }
