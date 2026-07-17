@@ -1443,7 +1443,7 @@ export default function OfficeDashboard({ onGoToSettings, onSwitchTab }: OfficeD
                         <div className="space-y-1">
                           <h4 className="text-sm font-extrabold text-goldLight flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-goldLight animate-pulse" />
-                            GEMINI LEGAL ORCHESTRATOR YAPAY ZEKA STÜDYOSU
+                            YAPAY ZEKÂ DOSYA ANALİZİ
                           </h4>
                           <p className="text-xs text-softGrey">Davanın gücünü, risklerini ve karşı tarafın stratejisini simüle edin.</p>
                         </div>
@@ -1461,7 +1461,7 @@ export default function OfficeDashboard({ onGoToSettings, onSwitchTab }: OfficeD
                           ) : (
                             <>
                               <Sparkles className="w-3.5 h-3.5" />
-                              Gemini Dosya Analizini Başlat
+                              Yapay Zekâ Dosya Analizini Başlat
                             </>
                           )}
                         </button>
@@ -1470,25 +1470,6 @@ export default function OfficeDashboard({ onGoToSettings, onSwitchTab }: OfficeD
                       {aiAnalysisResult ? (
                         <div className="space-y-4 pt-4 border-t border-slateGrey/30">
                           
-                          {/* Top percentages */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="bg-midnight/70 p-4 rounded-xl border border-emerald-500/20 text-center">
-                              <span className="text-[10px] text-softGrey block uppercase">DOSYA İDDİA GÜCÜ</span>
-                              <span className="text-2xl font-black text-emerald-400 block mt-1">{aiAnalysisResult.dosyaGucu}%</span>
-                              <span className="text-[9px] text-softGrey">Delil yeterliliği ve hukuki dayanak yüksek</span>
-                            </div>
-                            <div className="bg-midnight/70 p-4 rounded-xl border border-rose-500/20 text-center">
-                              <span className="text-[10px] text-softGrey block uppercase">KAYIP / RİSK SKORU</span>
-                              <span className="text-2xl font-black text-rose-400 block mt-1">{aiAnalysisResult.riskSkoru}%</span>
-                              <span className="text-[9px] text-softGrey">Usulden kaybetme ve tebligat riskleri düşük</span>
-                            </div>
-                            <div className="bg-midnight/70 p-4 rounded-xl border border-goldDark/20 text-center">
-                              <span className="text-[10px] text-softGrey block uppercase">BAŞARI OLASILIĞI</span>
-                              <span className="text-2xl font-black text-goldLight block mt-1">{aiAnalysisResult.basariOlasiligi}%</span>
-                              <span className="text-[9px] text-softGrey">Emsal kararlara göre kazanma ihtimali</span>
-                            </div>
-                          </div>
-
                           {/* Lists returned */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                             <div className="space-y-1.5 bg-midnight/30 p-4 rounded-xl border border-slateGrey/30">

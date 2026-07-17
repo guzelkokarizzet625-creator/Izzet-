@@ -108,36 +108,19 @@ export default function LegalSearch() {
   const smartData = getSmartRefinements(query);
 
   // Advanced parser for the response markdown string
-  const parseSearchResult = (text: string): { sections: ParsedSection[]; rawText: string; metadata: any } => {
-    if (!text) return { sections: [], rawText: "", metadata: null };
+  const parseSearchResult = (text: string): { sections: ParsedSection[]; rawText: string } => {
+    if (!text) return { sections: [], rawText: "" };
     
-    // Parse orchestrator metadata if appended as a footer
+    // Clean text by removing any trailing orchestrator details if present
     let cleanedText = text;
-    let metadata: any = null;
     const metadataMarker = "### 🛠️ AL HUKUK AI ORCHESTRATOR V3 RAPORU";
     if (text.includes(metadataMarker)) {
       const parts = text.split(metadataMarker);
       cleanedText = parts[0];
-      const metaString = parts[1];
-      
-      // Parse metadata variables with regex
-      const modelMatch = metaString.match(/🚀 \*\*Kullanılan Yapay Zekâ Modeli:\*\* `([^`]+)`/);
-      const reasoningMatch = metaString.match(/🧠 \*\*Sistem Muhakeme Seviyesi:\*\* `([^`]+)`/);
-      const timeMatch = metaString.match(/⏱️ \*\*Toplam İşlem Süresi:\*\* `([^`]+)`/);
-      const confidenceMatch = metaString.match(/🎯 \*\*Orkestrasyon Güven Oranı \(Confidence\):\*\* `([^`]+)`/);
-      const riskMatch = metaString.match(/⚠️ \*\*Tespit Edilen Hukuki Risk Seviyesi:\*\* `([^`]+)`/);
-      
-      metadata = {
-        usedModel: modelMatch ? modelMatch[1] : 'AL HUKUK AI ORCHESTRATOR V3',
-        reasoningLevel: reasoningMatch ? reasoningMatch[1] : 'DEEP COGNITIVE REASONING',
-        processingTime: timeMatch ? timeMatch[1] : '1.45 sn',
-        confidence: confidenceMatch ? confidenceMatch[1] : '%95',
-        legalRisk: riskMatch ? riskMatch[1] : '%15'
-      };
     }
 
     if (!cleanedText.includes('###')) {
-      return { sections: [], rawText: cleanedText, metadata };
+      return { sections: [], rawText: cleanedText };
     }
 
     const sections: ParsedSection[] = [];
@@ -206,7 +189,7 @@ export default function LegalSearch() {
       });
     }
 
-    return { sections, rawText: "", metadata };
+    return { sections, rawText: "" };
   };
 
   const parsedData = parseSearchResult(searchResult);
@@ -388,32 +371,6 @@ export default function LegalSearch() {
                   </div>
                 )}
               </div>
-
-              {/* Dynamic Metadata Diagnostics Card */}
-              {parsedData.metadata && (
-                <div className="bg-gradient-to-r from-midnight to-charcoal p-4 rounded-xl border border-goldDark/30 grid grid-cols-2 md:grid-cols-5 gap-3.5 shadow-xl">
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-black uppercase text-softGrey tracking-wider block">Yapay Zekâ Motoru</span>
-                    <strong className="text-[10px] text-goldLight block truncate">{parsedData.metadata.usedModel}</strong>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-black uppercase text-softGrey tracking-wider block">Muhakeme Seviyesi</span>
-                    <strong className="text-[10px] text-ivory block truncate">{parsedData.metadata.reasoningLevel}</strong>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-black uppercase text-softGrey tracking-wider block">Orkestrasyon Güven Oranı</span>
-                    <strong className="text-[10px] text-emerald-400 block">{parsedData.metadata.confidence}</strong>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-black uppercase text-softGrey tracking-wider block">Hukuki Risk Derecesi</span>
-                    <strong className="text-[10px] text-rose-400 block">{parsedData.metadata.legalRisk}</strong>
-                  </div>
-                  <div className="space-y-1 col-span-2 md:col-span-1">
-                    <span className="text-[8px] font-black uppercase text-softGrey tracking-wider block">İşlem Süresi</span>
-                    <strong className="text-[10px] text-cyan-400 block">{parsedData.metadata.processingTime}</strong>
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="bg-midnight p-5 rounded-xl border border-slateGrey/40 space-y-3">

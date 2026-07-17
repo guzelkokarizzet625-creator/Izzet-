@@ -709,119 +709,21 @@ fun StandaloneSimulatorScreen(viewModel: LegalViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "3. Simülasyon Sonuçları & Olasılık Dağılımı",
+                            text = "3. Simülasyon Değerlendirmesi",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = GoldLight,
                             modifier = Modifier.align(Alignment.Start)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Custom gauge meter drawing in canvas
-                        Box(
-                            modifier = Modifier
-                                .size(180.dp)
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val strokeWidthValue = 14.dp.toPx()
-                                val sizeValue = size.minDimension - strokeWidthValue
-
-                                // Arc background
-                                drawArc(
-                                    color = SlateGrey,
-                                    startAngle = 140f,
-                                    sweepAngle = 260f,
-                                    useCenter = false,
-                                    topLeft = Offset(strokeWidthValue / 2, strokeWidthValue / 2),
-                                    size = Size(sizeValue, sizeValue),
-                                    style = Stroke(width = strokeWidthValue, cap = StrokeCap.Round)
-                                )
-
-                                // Green win arc segment
-                                val winSweep = (winChance / 100f) * 260f
-                                drawArc(
-                                    color = SuccessGreen,
-                                    startAngle = 140f,
-                                    sweepAngle = winSweep,
-                                    useCenter = false,
-                                    topLeft = Offset(strokeWidthValue / 2, strokeWidthValue / 2),
-                                    size = Size(sizeValue, sizeValue),
-                                    style = Stroke(width = strokeWidthValue, cap = StrokeCap.Round)
-                                )
-
-                                // Amber settlement segment
-                                val settleSweep = (settlementChance / 100f) * 260f
-                                drawArc(
-                                    color = WarningOrange,
-                                    startAngle = 140f + winSweep,
-                                    sweepAngle = settleSweep,
-                                    useCenter = false,
-                                    topLeft = Offset(strokeWidthValue / 2, strokeWidthValue / 2),
-                                    size = Size(sizeValue, sizeValue),
-                                    style = Stroke(width = strokeWidthValue, cap = StrokeCap.Round)
-                                )
-
-                                // Red loss segment
-                                val lossSweep = (lossChance / 100f) * 260f
-                                drawArc(
-                                    color = ErrorRed,
-                                    startAngle = 140f + winSweep + settleSweep,
-                                    sweepAngle = lossSweep,
-                                    useCenter = false,
-                                    topLeft = Offset(strokeWidthValue / 2, strokeWidthValue / 2),
-                                    size = Size(sizeValue, sizeValue),
-                                    style = Stroke(width = strokeWidthValue, cap = StrokeCap.Round)
-                                )
-                            }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "%${winChance.toInt()}",
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = SuccessGreen
-                                )
-                                Text(
-                                    text = "Kazanma Şansı",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = GoldLight
-                                )
-                            }
-                        }
-
-                        // Legendary indicators Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("%${winChance.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(SuccessGreen))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Kabul (Kazanma)", fontSize = 10.sp, color = SoftGrey)
-                                }
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("%${settlementChance.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = WarningOrange)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(WarningOrange))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Uzlaşma / Sulh", fontSize = 10.sp, color = SoftGrey)
-                                }
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("%${lossChance.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(ErrorRed))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Ret (Kaybetme)", fontSize = 10.sp, color = SoftGrey)
-                                }
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "Dava parametrelerine dayalı olarak hazırlanan stratejik analiz raporu aşağıdadır. Lütfen SWOT analizini ve yargı organı simülasyonunu dikkatle inceleyiniz.",
+                            fontSize = 11.sp,
+                            color = SoftGrey,
+                            modifier = Modifier.align(Alignment.Start),
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             }

@@ -369,36 +369,9 @@ ${additionalDetails || 'Müvekkilin beyanları doğrultusunda yasal mevzuat gere
 
             {/* Circular/Gauge representation for Success Rate */}
             <div className="text-center space-y-2">
-              <div className="relative inline-flex items-center justify-center">
-                <svg className="w-24 h-24 transform -rotate-90">
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="transparent"
-                    className="text-charcoal"
-                  />
-                  <svg>
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="transparent"
-                      strokeDasharray="251.2"
-                      strokeDashoffset={251.2 - (251.2 * probability) / 100}
-                      className="text-amberAccent transition-all duration-500 ease-out"
-                    />
-                  </svg>
-                </svg>
-                <span className="absolute text-lg font-black text-ivory">%{probability}</span>
-              </div>
               <div>
-                <strong className="text-[11px] text-goldLight block">Tahmini Kazanma İhtimali</strong>
-                <p className="text-[9px] text-softGrey/80 mt-0.5">Mevcut delil ve beyan matrisine dayalı anlık olasılık simülasyonu</p>
+                <strong className="text-[11px] text-goldLight block">Gerçek Zamanlı Risk Analizi</strong>
+                <p className="text-[9px] text-softGrey/80 mt-0.5">Mevcut delil ve beyan matrisine dayalı anlık değerlendirme</p>
               </div>
             </div>
 

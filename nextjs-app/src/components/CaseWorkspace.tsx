@@ -949,11 +949,11 @@ ${finalReport.avukatDegerlendirmesi}
 -----------------------------------------
 3. DOSYA METRİKLERİ VE PUANLAR
 -----------------------------------------
-Dosya Güç Puanı: %${finalReport.dosyaPuani}/100
-Başarı Olasılığı: %${finalReport.basariIhtimali}/100
-Risk Skoru: %${finalReport.riskPuani}/100
-İstinaf Riski: %${finalReport.istinafIhtimali}/100
-Temyiz Riski: %${finalReport.temyizIhtimali}/100
+Dosya Gücü: ${finalReport.dosyaPuani > 60 ? 'YÜKSEK' : finalReport.dosyaPuani > 30 ? 'ORTA' : 'DÜŞÜK'}
+Başarı İhtimali: ${finalReport.basariIhtimali > 60 ? 'YÜKSEK' : finalReport.basariIhtimali > 30 ? 'ORTA' : 'DÜŞÜK'}
+Risk Seviyesi: ${finalReport.riskPuani > 60 ? 'YÜKSEK' : finalReport.riskPuani > 30 ? 'ORTA' : 'DÜŞÜK'}
+İstinaf Riski: ${finalReport.istinafIhtimali > 60 ? 'YÜKSEK' : finalReport.istinafIhtimali > 30 ? 'ORTA' : 'DÜŞÜK'}
+Temyiz Riski: ${finalReport.temyizIhtimali > 60 ? 'YÜKSEK' : finalReport.temyizIhtimali > 30 ? 'ORTA' : 'DÜŞÜK'}
 
 -----------------------------------------
 4. STRATEJİK ÖNERİLER VE YOL HARİTASI
@@ -1070,7 +1070,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
           <div className="space-y-2 max-w-md">
             <h3 className="text-base font-serif font-bold text-goldLight">Akıllı Hukuki Simülasyonu Başlatın</h3>
             <p className="text-[11px] text-softGrey leading-relaxed">
-              Google Gemini ve AI Hukuk Motorumuz bu olay özetini inceleyerek; detaylı kronoloji, delil güçleri, yasal dayanaklar, usuli riskler, arabuluculuk ihtimali ve her iki tarafın olası çapraz sorgularını otomatik üretecektir.
+              Yapay zekâ altyapımız bu olay özetini inceleyerek; detaylı kronoloji, delil güçleri, yasal dayanaklar, usuli riskler, arabuluculuk ihtimali ve her iki tarafın olası çapraz sorgularını otomatik üretecektir.
             </p>
           </div>
           
@@ -1166,7 +1166,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
               ) : (
                 <>
                   <Zap className="w-4 h-4 text-goldDark animate-pulse" />
-                  Raporu Güncelle (Gemini V3.0)
+                  Raporu Güncelle
                 </>
               )}
             </button>
@@ -1253,11 +1253,10 @@ Rapor Sonu - AL HUKUK AI Enterprise
                             <Sparkles className="w-4 h-4 text-goldLight animate-pulse" />
                           </div>
                           <div>
-                            <h3 className="text-xs font-black text-goldLight uppercase tracking-widest leading-none">ULTRA ENGINE V3 // GERÇEKLİK MOTORU</h3>
+                            <h3 className="text-xs font-black text-goldLight uppercase tracking-widest leading-none">DETAYLI VAKIA ANALİZİ</h3>
                             <p className="text-[9px] text-softGrey uppercase tracking-wider mt-1">Vakıa Doğruluk, Öngörü ve Bağımsız Mütalaa Katmanı</p>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-goldDark/20 text-goldLight border border-goldDark/30">REALITY_ENGINE_ACTIVE</span>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1471,7 +1470,6 @@ Rapor Sonu - AL HUKUK AI Enterprise
                             <AlertTriangle className="w-4 h-4 text-goldDark" />
                             Çapraz Çelişkili Beyan Analizi
                           </h3>
-                          <span className="text-[9px] bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded font-black font-mono">CRITICAL_ENGINE</span>
                         </div>
                         
                         <div className="space-y-3">
@@ -1620,13 +1618,12 @@ Rapor Sonu - AL HUKUK AI Enterprise
                       <div className="bg-midnight p-5 rounded-xl border border-slateGrey/40 flex flex-col items-center justify-center text-center space-y-2 shadow-inner">
                         <span className="text-[10px] font-bold text-softGrey uppercase">DOSYA GÜÇ DERECESİ</span>
                         <div className="w-24 h-24 rounded-full border-4 border-goldDark/20 flex flex-col items-center justify-center bg-goldDark/5 relative shadow-lg shadow-goldDark/5">
-                          <span className="text-2xl font-serif font-black text-goldLight">
-                            %{expandedAnalysis?.kazanmaIhtimali || 72}
+                          <span className="text-xs font-serif font-black text-goldLight text-center px-2">
+                            {activeBadge.label}
                           </span>
-                          <span className="text-[8px] text-softGrey uppercase font-bold mt-1">Kazanma İht.</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded border ${activeBadge.colorClass}`}>
-                          {activeBadge.label}
+                        <span className={`text-[10px] font-bold px-3 py-1 rounded border mt-2 ${activeBadge.colorClass}`}>
+                          SİMÜLASYON TAMAMLANDI
                         </span>
                       </div>
 
@@ -1685,7 +1682,6 @@ Rapor Sonu - AL HUKUK AI Enterprise
                             <p className="text-[9px] text-softGrey uppercase tracking-wider mt-1">15 Farklı Hukuk Uzmanının Bağımsız Karar Konsensüsü</p>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-goldDark/20 text-goldLight border border-goldDark/30">CONSENSUAL_CONFERENCE_V3</span>
                       </div>
 
                       {/* Common Decision / Ortak Karar */}
@@ -1757,10 +1753,10 @@ Rapor Sonu - AL HUKUK AI Enterprise
                               <div key={idx} className="space-y-1.5">
                                 <div className="flex justify-between text-[11px]">
                                   <span className="text-softGrey font-medium">{field.label}</span>
-                                  <strong className="text-ivory font-black">%{field.val}</strong>
+                                  <strong className="text-ivory font-black">{field.val > 30 ? "YÜKSEK RİSK" : field.val > 15 ? "ORTA RİSK" : "DÜŞÜK RİSK"}</strong>
                                 </div>
                                 <div className="w-full bg-charcoal h-1.5 rounded-full overflow-hidden border border-slateGrey/20">
-                                  <div className={`h-full ${field.color} transition-all duration-500`} style={{ width: `${field.val}%` }}></div>
+                                  <div className={`h-full ${field.color} transition-all duration-500`} style={{ width: field.val > 30 ? '80%' : field.val > 15 ? '50%' : '20%' }}></div>
                                 </div>
                               </div>
                             ))}
@@ -2159,7 +2155,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
                     <div key={m.label} className="space-y-1">
                       <div className="flex justify-between text-[10px] text-softGrey">
                         <span className="font-bold">{m.label}</span>
-                        <span className="text-goldLight">%{m.value}</span>
+                        <span className="text-goldLight">{m.value > 60 ? "YÜKSEK" : m.value > 30 ? "ORTA" : "DÜŞÜK"}</span>
                       </div>
                       <div className="w-full bg-charcoal h-1 rounded-full overflow-hidden">
                         <div className={`bg-gradient-to-r ${m.color} h-full transition-all duration-500`} style={{ width: `${m.value}%` }}></div>
