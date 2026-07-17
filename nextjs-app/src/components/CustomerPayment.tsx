@@ -67,7 +67,9 @@ export default function CustomerPayment() {
   const [checkoutError, setCheckoutError] = useState('');
 
   // Dynamic active bank accounts states
-  const activeBanks = bankAccounts ? bankAccounts.filter(b => b.isActive) : [];
+  const activeBanks = React.useMemo(() => {
+    return bankAccounts ? bankAccounts.filter(b => b.isActive) : [];
+  }, [bankAccounts]);
   const [selectedBankId, setSelectedBankId] = useState<string>('');
 
   React.useEffect(() => {

@@ -90,7 +90,7 @@ export default function PetitionStudio() {
       initialParams[field] = '';
     });
     setParamValues(initialParams);
-  }, [selectedTypeIdx]);
+  }, [selectedTypeIdx, activeDocType.fields]);
 
   // Recalculate Kazanma İhtimali (Success Probability) & Risks in real-time
   const getCalculatedMetrics = () => {
