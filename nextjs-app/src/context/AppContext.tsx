@@ -2151,7 +2151,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         body: JSON.stringify({ prompt: finalPrompt, taskType })
       });
       if (!response.ok) {
-        throw new Error('API request failed');
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch (_) {}
+        const errorMsg = errorData.details || errorData.error || 'Yapay zeka servisine bağlanırken bir hata oluştu. Lütfen API anahtarlarınızı kontrol edin.';
+        throw new Error(errorMsg);
       }
       const data = await response.json();
       
@@ -2309,8 +2314,8 @@ Yanıtınız net, akademik ve uygulanabilir tavsiyeler içermelidir.`;
       const res = await callGeminiApi(prompt, "LEGAL_SEARCH");
       setSearchResult(res);
       setSessions(prev => [{ id: Date.now(), title: query, type: 'SEARCH', date: new Date().toLocaleDateString('tr-TR') }, ...prev]);
-    } catch (e) {
-      setSearchResult("Arama esnasında bir hata oluştu. Lütfen bağlantınızı kontrol edip tekrar deneyin.");
+    } catch (e: any) {
+      setSearchResult(e.message || "Arama esnasında bir hata oluştu. Lütfen bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setSearchLoading(false);
     }
@@ -2335,8 +2340,8 @@ Lütfen dilekçede şu bölümleri tam olarak bulundurun:
       const res = await callGeminiApi(prompt, "PETITION_DRAFT");
       setPetitionResult(res);
       setSessions(prev => [{ id: Date.now(), title: title, type: 'PETITION', date: new Date().toLocaleDateString('tr-TR') }, ...prev]);
-    } catch (e) {
-      setPetitionResult("Dilekçe hazırlanırken bir hata oluştu. Lütfen bilgileri kontrol edip tekrar deneyin.");
+    } catch (e: any) {
+      setPetitionResult(e.message || "Dilekçe hazırlanırken bir hata oluştu. Lütfen bilgileri kontrol edip tekrar deneyin.");
     } finally {
       setPetitionLoading(false);
     }
@@ -2352,8 +2357,8 @@ Ders Konusu: ${lessonTitle}
 Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
       const res = await callGeminiApi(prompt, "ACADEMY");
       setAcademyResult(res);
-    } catch (e) {
-      setAcademyResult("Eğitim modülü yüklenirken bir hata oluştu.");
+    } catch (e: any) {
+      setAcademyResult(e.message || "Eğitim modülü yüklenirken bir hata oluştu.");
     } finally {
       setAcademyLoading(false);
     }
@@ -2367,8 +2372,8 @@ Dersin sonunda 3 soruluk pratik bir mini test de ekleyin.`;
 "${input}"`;
       const res = await callGeminiApi(prompt, "VOICE_ASSISTANT");
       setVoiceResponse(res);
-    } catch (e) {
-      setVoiceResponse("Sesli asistan şu anda meşgul, lütfen tekrar konuşun.");
+    } catch (e: any) {
+      setVoiceResponse(e.message || "Sesli asistan şu anda meşgul, lütfen tekrar konuşun.");
     } finally {
       setVoiceActive(false);
     }
