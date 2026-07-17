@@ -194,14 +194,14 @@ export async function POST(request: Request) {
       try {
         if (routing.modelType === 'GPT_AND_GEMINI' && isGeminiAvailable && isOpenAiAvailable) {
           // Parallel execution with timeout control (6 seconds)
-          chosenModelLabel = 'GPT-4o & Gemini 3.5 Flash (Paralel Karşılaştırmalı Analiz)';
+          chosenModelLabel = 'GPT-4o & Gemini 1.5 Flash (Paralel Karşılaştırmalı Analiz)';
           confidenceVal = 99;
           reasoningLevelLabel = 'PARALLEL CONSENSUS & VERIFICATION ENGINE';
           legalRiskVal = 10;
 
           const [openAiResult, geminiResult] = await Promise.allSettled([
             runWithTimeout(callOpenAi(prompt, 'gpt-4o', systemInstruction), 6000, 'OpenAI Timeout'),
-            runWithTimeout(callGemini(prompt, 'gemini-3.5-flash', systemInstruction), 6000, 'Gemini Timeout')
+            runWithTimeout(callGemini(prompt, 'gemini-1.5-flash', systemInstruction), 6000, 'Gemini Timeout')
           ]);
 
           const gptText = openAiResult.status === 'fulfilled' ? openAiResult.value : '';
@@ -235,8 +235,8 @@ Lütfen yukarıdaki iki cevabın en güvenli, doğru ve teknik sentezini tek bir
         } 
         else if (isGeminiAvailable) {
           // Route to Google Gemini (Fallback if OpenAI selected but unavailable, or routed to Gemini)
-          const modelName = routing.modelType === 'GEMINI_PRO' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
-          chosenModelLabel = modelName === 'gemini-3.1-pro-preview' ? 'Google Gemini 3.1 Pro' : 'Google Gemini 3.5 Flash';
+          const modelName = routing.modelType === 'GEMINI_PRO' ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
+          chosenModelLabel = modelName === 'gemini-1.5-pro' ? 'Google Gemini 1.5 Pro' : 'Google Gemini 1.5 Flash';
           confidenceVal = 92;
           reasoningLevelLabel = 'FAST COGNITIVE REASONING';
           legalRiskVal = 16;
