@@ -182,20 +182,12 @@ export default function CameraOCR() {
 
               {selectedDoc.status === 'RISK_ANALYZED' ? (
                 <div className="space-y-4">
-                  {/* Gauge indicator */}
+                  {/* Risk Level Badge */}
                   <div className="flex flex-col sm:flex-row items-center gap-4 bg-charcoal p-4 rounded-xl border border-slateGrey/50">
-                    <div className="relative flex items-center justify-center shrink-0">
-                      <svg className="w-20 h-20">
-                        <circle className="text-midnight" strokeWidth="6" stroke="currentColor" fill="transparent" r="30" cx="40" cy="40"/>
-                        <circle className={
-                          selectedDoc.riskLevel === 'HIGH' 
-                            ? 'text-errorRed' 
-                            : selectedDoc.riskLevel === 'MEDIUM' 
-                              ? 'text-warningOrange' 
-                              : 'text-successGreen'
-                        } strokeWidth="6" strokeDasharray={`${2 * Math.PI * 30}`} strokeDashoffset={`${2 * Math.PI * 30 * (1 - selectedDoc.riskScore / 100)}`} strokeLinecap="round" stroke="currentColor" fill="transparent" r="30" cx="40" cy="40"/>
-                      </svg>
-                      <span className="absolute text-sm font-extrabold text-goldLight">{selectedDoc.riskScore}%</span>
+                    <div className="relative flex items-center justify-center shrink-0 w-20 h-20 bg-midnight rounded-full border-4 border-slateGrey/30">
+                       <span className="text-xs font-black text-center px-1">
+                          {selectedDoc.riskLevel === 'HIGH' ? <span className="text-errorRed">YÜKSEK RİSK</span> : selectedDoc.riskLevel === 'MEDIUM' ? <span className="text-warningOrange">ORTA RİSK</span> : <span className="text-successGreen">DÜŞÜK RİSK</span>}
+                       </span>
                     </div>
 
                     <div className="space-y-1 text-center sm:text-left">
@@ -209,7 +201,7 @@ export default function CameraOCR() {
                         Risk Seviyesi: {selectedDoc.riskLevel === 'HIGH' ? 'Yüksek Risk' : selectedDoc.riskLevel === 'MEDIUM' ? 'Orta Derece Risk' : 'Güvenli (Temiz)'}
                       </span>
                       <p className="text-[11px] text-softGrey">
-                        Türk Borçlar Kanunu hükümlerine göre belirlenen bu risk skoru, sözleşmedeki haksız şart dengelerini ve yasal eksiklikleri ifade eder.
+                        Türk Borçlar Kanunu hükümlerine göre belirlenen bu analiz, sözleşmedeki haksız şart dengelerini ve yasal eksiklikleri ifade eder.
                       </p>
                     </div>
                   </div>
@@ -224,6 +216,36 @@ export default function CameraOCR() {
                   <div className="bg-charcoal p-3.5 rounded-lg border border-slateGrey/40 space-y-1">
                     <span className="text-[10px] font-bold text-goldLight uppercase tracking-wider block">📄 Evrak Metin Deşifresi (OCR):</span>
                     <p className="text-[10px] text-softGrey line-clamp-3 italic leading-normal">&quot;{selectedDoc.contentText}&quot;</p>
+                  </div>
+                  
+                  {/* Proactive Next Steps */}
+                  <div className="pt-4 border-t border-slateGrey/30 space-y-3">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-goldLight flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-amberAccent" />
+                      Önerilen Sonraki Adımlar
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => {
+                          window.location.hash = "petition";
+                          alert("Dilekçe Stüdyosuna yönlendiriliyorsunuz. İlgili belgeye itiraz dilekçesi hazırlanacak.");
+                        }}
+                        className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                      >
+                        <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">İtiraz Dilekçesi Hazırlansın mı?</span>
+                        <span className="block text-[10px] text-softGrey mt-1">Bu sözleşme/evraktaki riskli maddelere karşı itiraz veya ihtarname oluşturun.</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          window.location.hash = "dava";
+                          alert("Dava Simülatörüne yönlendiriliyor. Bu belge ana delil olarak eklendi.");
+                        }}
+                        className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                      >
+                        <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">Dava Dosyasına Eklesin mi?</span>
+                        <span className="block text-[10px] text-softGrey mt-1">Bu belgeyi ana delil olarak belirleyip risk simülasyonunu güncelleyin.</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

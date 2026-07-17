@@ -89,9 +89,9 @@ export default function Academy() {
           {academyLoading ? (
             <div className="p-16 text-center space-y-4 bg-midnight rounded-xl border border-slateGrey/40 min-h-[350px] flex flex-col justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-goldDark mx-auto" />
-              <h4 className="text-xs font-bold text-goldLight">Hukuk Profesörü AI Konuşuyor</h4>
+              <h4 className="text-xs font-bold text-goldLight">Akademi Eğitmeni Hazırlanıyor</h4>
               <p className="text-[10px] text-softGrey max-w-xs mx-auto">
-                Konu hakkındaki mevzuat hükümleri, emsal olay incelemeleri ve ders sonu mini pratik testi tanzim ediliyor...
+                Konu hakkındaki mevzuat hükümleri, emsal olay incelemeleri ve pratik çalışma notları düzenleniyor...
               </p>
             </div>
           ) : academyResult ? (
@@ -99,12 +99,42 @@ export default function Academy() {
               <div className="flex justify-between items-center border-b border-slateGrey/30 pb-3">
                 <span className="text-[10px] font-bold text-goldDark uppercase tracking-wider flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-goldDark" />
-                  Ders Notu ve Mini Pratik Test
+                  Ders Notu ve Pratik Çalışma
                 </span>
                 <span className="text-[9px] bg-goldDark/15 text-goldLight border border-goldDark/30 px-2 py-0.5 rounded font-bold uppercase">AKTİF DERS</span>
               </div>
               <div className="text-xs text-softGrey leading-relaxed whitespace-pre-wrap prose prose-invert max-h-[450px] overflow-y-auto pr-2">
                 {academyResult}
+              </div>
+              
+              {/* Proactive Next Steps */}
+              <div className="pt-4 border-t border-slateGrey/30 space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-goldLight flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-amberAccent" />
+                  Önerilen Sonraki Adımlar
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => {
+                      window.location.hash = "dava";
+                      alert("Dava Simülatörüne yönlendiriliyorsunuz. Öğrendiklerinizi gerçek bir olayda test edin.");
+                    }}
+                    className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                  >
+                    <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">Pratik Vaka Simülasyonu</span>
+                    <span className="block text-[10px] text-softGrey mt-1">Öğrendiğiniz kuralları sanal bir dava dosyası oluşturarak hemen test edin.</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.location.hash = "search";
+                      alert("Hukuki arama motoruna yönlendiriliyorsunuz.");
+                    }}
+                    className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                  >
+                    <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">İlgili Kanunlarda Arama Yap</span>
+                    <span className="block text-[10px] text-softGrey mt-1">Derste geçen maddelerle alakalı Yargıtay emsal kararlarını araştırın.</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

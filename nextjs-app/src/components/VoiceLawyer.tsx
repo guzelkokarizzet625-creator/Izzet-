@@ -121,7 +121,7 @@ export default function VoiceLawyer() {
                 </div>
               </div>
             ) : voiceResponse ? (
-              <div className="space-y-3.5 text-xs">
+              <div className="space-y-3.5 text-xs animate-fade-in">
                 <div>
                   <span className="text-[10px] text-amberAccent font-bold block uppercase">🎙️ Deşifre Edilen Metin:</span>
                   <p className="text-ivory italic mt-0.5">&quot;{voiceText}&quot;</p>
@@ -132,6 +132,36 @@ export default function VoiceLawyer() {
                     Sesli Asistan Yanıtı (Okunuyor):
                   </span>
                   <p className="text-softGrey leading-relaxed">{voiceResponse}</p>
+                </div>
+                
+                {/* Proactive Next Steps */}
+                <div className="pt-3 border-t border-slateGrey/30 space-y-3 mt-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-goldLight flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amberAccent" />
+                    Önerilen Sonraki Adımlar
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => {
+                        window.location.hash = "petition";
+                        alert("Dilekçe Stüdyosuna yönlendiriliyorsunuz. Sorunuza uygun dilekçe taslağı hazırlanacak.");
+                      }}
+                      className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-2.5 rounded-xl text-left transition-all group outline-none"
+                    >
+                      <span className="block text-[11px] font-bold text-ivory group-hover:text-goldLight">Dilekçe Hazırlayalım mı?</span>
+                      <span className="block text-[9px] text-softGrey mt-0.5">Bahsettiğiniz konuyu resmi bir dilekçe formatına çevirelim.</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.location.hash = "search";
+                        alert("Mevzuat arama motoruna yönlendiriliyor.");
+                      }}
+                      className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-2.5 rounded-xl text-left transition-all group outline-none"
+                    >
+                      <span className="block text-[11px] font-bold text-ivory group-hover:text-goldLight">Kanunlarda Araştır</span>
+                      <span className="block text-[9px] text-softGrey mt-0.5">Asistanın verdiği yanıttaki maddeleri detaylı mevzuatta tarayın.</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (

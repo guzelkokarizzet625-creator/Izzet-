@@ -370,6 +370,36 @@ export default function LegalSearch() {
                     {searchResult}
                   </div>
                 )}
+                
+                {/* Proactive Next Steps */}
+                <div className="mt-6 pt-4 border-t border-slateGrey/30 space-y-3 animate-fade-in">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-goldLight flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amberAccent" />
+                    Önerilen Sonraki Adımlar
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => {
+                        window.location.hash = "petition"; 
+                        alert("Dilekçe Stüdyosuna yönlendiriliyorsunuz. Aramanızla ilgili taslak oluşturulacak.");
+                      }}
+                      className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                    >
+                      <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">Dilekçe Hazırlamak İster misiniz?</span>
+                      <span className="block text-[10px] text-softGrey mt-1">Bu konuya uygun bir dava veya cevap dilekçesi taslağı oluşturun.</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.location.hash = "dava";
+                        alert("Dava Simülatörüne yönlendiriliyorsunuz.");
+                      }}
+                      className="bg-charcoal border border-slateGrey/40 hover:border-goldDark/50 p-3 rounded-xl text-left transition-all group outline-none"
+                    >
+                      <span className="block text-xs font-bold text-ivory group-hover:text-goldLight">Dava Simülasyonu Başlatılsın mı?</span>
+                      <span className="block text-[10px] text-softGrey mt-1">Olayınızı simülatöre girerek risk ve kazanma analizi yapın.</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
