@@ -52,8 +52,10 @@ function extractField(prompt: string, label: string): string {
   const regex = new RegExp(`${label}:?\\s*(.*)`, 'i');
   const match = prompt.match(regex);
   if (match && match[1]) {
-    return match[1].trim().split('
-')[0].replace(/["']/g, '');
+    return match[1]
+      .trim()
+      .split('\n')[0]
+      .replace(/["']/g, '');
   }
   return '';
 }
