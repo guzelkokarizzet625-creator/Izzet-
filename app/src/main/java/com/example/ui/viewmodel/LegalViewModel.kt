@@ -411,6 +411,10 @@ class LegalViewModel(private val repository: LegalRepository) : ViewModel() {
         }
     }
 
+    fun selectCaseFile(id: Int?) {
+        _selectedCaseFileId.value = id
+    }
+
     fun updateCaseNotes(notes: String) {
         val current = currentCaseFile.value ?: return
         viewModelScope.launch {
