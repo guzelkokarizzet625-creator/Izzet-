@@ -955,7 +955,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
                 <div className="space-y-2">
                   <h3 className="text-xs uppercase font-black text-goldDark">Vizyonumuz</h3>
                   <p className="text-[11px] text-softGrey leading-relaxed">
-                    Türkiye'deki tüm adliye, baro ve özel büro süreçlerinin dijital birer yapay zekâ asistanıyla entegre çalıştığı, hukuka erişimin saniyeler düzeyine indiği demokratik ve teknolojik bir adalet ekosistemi oluşturmak.
+                    Türkiye&apos;deki tüm adliye, baro ve özel büro süreçlerinin dijital birer yapay zekâ asistanıyla entegre çalıştığı, hukuka erişimin saniyeler düzeyine indiği demokratik ve teknolojik bir adalet ekosistemi oluşturmak.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -1179,10 +1179,10 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">1. Veri Sorumlusu ve Giriş</h2>
                 <p>
-                  AL Hukuk AI Akıllı Adli Sistemler Ltd. Şti. ("Şirket") olarak, platformumuzu ("AL Hukuk AI") ziyaret eden misafirlerimizin, kayıtlı avukatlarımızın, stajyerlerimizin ve diğer kullanıcılarımızın gizlilik haklarına azami saygı gösteriyor; kişisel verilerinin korunmasına ve güvenliğinin sağlanmasına büyük önem veriyoruz. 
+                  AL Hukuk AI Akıllı Adli Sistemler Ltd. Şti. (&quot;Şirket&quot;) olarak, platformumuzu (&quot;AL Hukuk AI&quot;) ziyaret eden misafirlerimizin, kayıtlı avukatlarımızın, stajyerlerimizin ve diğer kullanıcılarımızın gizlilik haklarına azami saygı gösteriyor; kişisel verilerinin korunmasına ve güvenliğinin sağlanmasına büyük önem veriyoruz. 
                 </p>
                 <p>
-                  İşbu Gizlilik Politikası ve Aydınlatma Metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") ve ilgili ikincil mevzuat uyarınca, hangi verilerinizin hangi amaçlarla işlendiği, kimlere aktarılabileceği ve veri sahipliği haklarınızı nasıl kullanabileceğiniz hususunda sizi bilgilendirmek amacıyla hazırlanmıştır.
+                  İşbu Gizlilik Politikası ve Aydınlatma Metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) ve ilgili ikincil mevzuat uyarınca, hangi verilerinizin hangi amaçlarla işlendiği, kimlere aktarılabileceği ve veri sahipliği haklarınızı nasıl kullanabileceğiniz hususunda sizi bilgilendirmek amacıyla hazırlanmıştır.
                 </p>
               </div>
 
@@ -1202,7 +1202,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">3. Veri İşleme Amaçlarımız</h2>
                 <p>
-                  Kişisel verileriniz, KVKK'nın 5. ve 6. maddelerinde belirtilen yasal şartlar dahilinde şu amaçlarla işlenmektedir:
+                  Kişisel verileriniz, KVKK&apos;nın 5. ve 6. maddelerinde belirtilen yasal şartlar dahilinde şu amaçlarla işlenmektedir:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Yapay zekâ karar destek hizmetlerinin (Dilekçe Stüdyosu, Dava Simülatörü vb.) kesintisiz ve hatasız sunulması.</li>
@@ -1225,7 +1225,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">5. Veri Sahibi Haklarınız (KVKK m. 11)</h2>
                 <p>
-                  Kanun'un 11. maddesi uyarınca dilediğiniz zaman <strong>destek@alhukuk.ai</strong> e-posta adresi üzerinden bizimle iletişime geçerek; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse bilgi talep etme, işlenme amacını ve uygun kullanılıp kullanılmadığını sorma, verilerin düzeltilmesini veya silinmesini talep etme haklarınızı kullanabilirsiniz. Talepleriniz en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır.
+                  Kanun&apos;un 11. maddesi uyarınca dilediğiniz zaman <strong>destek@alhukuk.ai</strong> e-posta adresi üzerinden bizimle iletişime geçerek; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse bilgi talep etme, işlenme amacını ve uygun kullanılıp kullanılmadığını sorma, verilerin düzeltilmesini veya silinmesini talep etme haklarınızı kullanabilirsiniz. Talepleriniz en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır.
                 </p>
               </div>
             </div>
@@ -1247,10 +1247,10 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">1. Taraflar ve Onay</h2>
                 <p>
-                  İşbu Kullanım Şartları ve Hizmet Sözleşmesi ("Sözleşme"), AL Hukuk AI Akıllı Adli Sistemler Ltd. Şti. ("Şirket") ile AL Hukuk AI platformuna ("Platform") misafir veya kayıtlı üye olarak erişim sağlayan gerçek veya tüzel kişiler ("Kullanıcı") arasında akdedilmiştir.
+                  İşbu Kullanım Şartları ve Hizmet Sözleşmesi (&quot;Sözleşme&quot;), AL Hukuk AI Akıllı Adli Sistemler Ltd. Şti. (&quot;Şirket&quot;) ile AL Hukuk AI platformuna (&quot;Platform&quot;) misafir veya kayıtlı üye olarak erişim sağlayan gerçek veya tüzel kişiler (&quot;Kullanıcı&quot;) arasında akdedilmiştir.
                 </p>
                 <p>
-                  Platformu ziyaret ederek, üye olarak veya herhangi bir yapay zekâ aracını kullanarak, işbu Sözleşme'de yer alan tüm şartları okuduğunuzu, anladığınızı ve aynen kabul ettiğinizi beyan etmiş olursunuz. Şartları kabul etmiyorsanız lütfen Platformu kullanmayınız.
+                  Platformu ziyaret ederek, üye olarak veya herhangi bir yapay zekâ aracını kullanarak, işbu Sözleşme&apos;de yer alan tüm şartları okuduğunuzu, anladığınızı ve aynen kabul ettiğinizi beyan etmiş olursunuz. Şartları kabul etmiyorsanız lütfen Platformu kullanmayınız.
                 </p>
               </div>
 
@@ -1259,7 +1259,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
                 <div className="bg-amber-500/5 border border-goldDark/30 p-4 rounded-2xl text-goldLight font-semibold space-y-2">
                   <p className="uppercase text-[10px] tracking-wider text-amberAccent font-black">📢 ÖNEMLİ HUKUKÎ BİLGİLENDİRME:</p>
                   <p className="leading-relaxed">
-                    AL Hukuk AI bünyesindeki yapay zekâ asistanı, dilekçe tanzim şablonları, dava risk analiz simülatörleri ve mevzuat arama motorları sadece **karar destek ve ön araştırma** amaçlı tasarlanmıştır. Platformumuz bir hukuk bürosu olmadığı gibi, sağlanan yanıtlar resmi bir "hukuki mütalaa" veya "avukatlık tavsiyesi" teşkil etmez.
+                    AL Hukuk AI bünyesindeki yapay zekâ asistanı, dilekçe tanzim şablonları, dava risk analiz simülatörleri ve mevzuat arama motorları sadece **karar destek ve ön araştırma** amaçlı tasarlanmıştır. Platformumuz bir hukuk bürosu olmadığı gibi, sağlanan yanıtlar resmi bir &quot;hukuki mütalaa&quot; veya &quot;avukatlık tavsiyesi&quot; teşkil etmez.
                   </p>
                   <p className="leading-relaxed">
                     Yapay zekâ tarafından tanzim edilen dilekçelerin adli mercilere sunulmadan önce mutlaka profesyonel bir avukat tarafından usul hukuku (HMK, CMK, İYUK) normlarına uygunluğu yönünden denetlenmesi zorunludur. Yapay zekâ çıktılarının kullanımından kaynaklanabilecek hak kayıpları, süre kaçırılması veya adli masraflardan Şirketimiz kesinlikle sorumlu tutulamaz.
@@ -1270,7 +1270,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">3. Fikri Mülkiyet Hakları</h2>
                 <p>
-                  Platformun arayüz tasarımı, kaynak kodları, veri tabanı yapıları, yapay zekâ prompt mühendisliği kurguları, logosu ve "AL Hukuk AI" markası Şirket'in münhasır mülkiyetindedir. Kullanıcılara sağlanan üyelik hakkı, sadece kendi işlerinde karar destek almak üzere sınırlı, kişisel ve devredilemez bir kullanım lisansı vermektedir. Platform kodlarının veya veri tabanının kopyalanması, kazınması (scraping) veya üçüncü şahıslara pazarlanması yasaktır.
+                  Platformun arayüz tasarımı, kaynak kodları, veri tabanı yapıları, yapay zekâ prompt mühendisliği kurguları, logosu ve &quot;AL Hukuk AI&quot; markası Şirket&apos;in münhasır mülkiyetindedir. Kullanıcılara sağlanan üyelik hakkı, sadece kendi işlerinde karar destek almak üzere sınırlı, kişisel ve devredilemez bir kullanım lisansı vermektedir. Platform kodlarının veya veri tabanının kopyalanması, kazınması (scraping) veya üçüncü şahıslara pazarlanması yasaktır.
                 </p>
               </div>
 
@@ -1287,7 +1287,7 @@ Böylece müvekkilinize davanın olası gidişatı hakkında somut verilere daya
               <div className="space-y-3">
                 <h2 className="text-sm font-black text-goldLight uppercase tracking-wider border-b border-slateGrey/30 pb-2">5. Yürürlük ve Değişiklikler</h2>
                 <p>
-                  Şirket, adli mevzuat değişiklikleri veya teknolojik güncellemeler doğrultusunda işbu Kullanım Şartları'nı dilediği zaman tek taraflı olarak revize etme hakkını saklı tutar. Güncel sözleşme platformda yayınlandığı andan itibaren tüm kullanıcılar için geçerlilik kazanır.
+                  Şirket, adli mevzuat değişiklikleri veya teknolojik güncellemeler doğrultusunda işbu Kullanım Şartları&apos;nı dilediği zaman tek taraflı olarak revize etme hakkını saklı tutar. Güncel sözleşme platformda yayınlandığı andan itibaren tüm kullanıcılar için geçerlilik kazanır.
                 </p>
               </div>
             </div>

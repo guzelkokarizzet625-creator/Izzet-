@@ -1480,7 +1480,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
                               </div>
                               <div className="space-y-1">
                                 <span className="text-[10px] font-black text-goldLight block uppercase tracking-wide">KAYNAK: {c.source}</span>
-                                <p className="text-xs text-softGrey italic">"{c.statement}"</p>
+                                <p className="text-xs text-softGrey italic">&quot;{c.statement}&quot;</p>
                               </div>
                               <div className="border-t border-slateGrey/10 pt-2 space-y-1">
                                 <span className="text-[10px] font-black text-emerald-400 block uppercase tracking-wide">ÇELİŞTİĞİ DELİL/OLGU: {c.comparisonWith}</span>
@@ -1721,7 +1721,7 @@ Rapor Sonu - AL HUKUK AI Enterprise
                                   </span>
                                 </div>
                                 <strong className="text-[10px] text-ivory block mt-0.5">{op.advisorName}</strong>
-                                <p className="text-[11px] text-softGrey leading-relaxed italic">"{op.opinion}"</p>
+                                <p className="text-[11px] text-softGrey leading-relaxed italic">&quot;{op.opinion}&quot;</p>
                               </div>
                             </div>
                           );

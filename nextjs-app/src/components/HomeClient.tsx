@@ -265,7 +265,7 @@ export default function HomeClient() {
               className="w-full py-3.5 bg-gradient-to-r from-goldDark to-amberAccent hover:brightness-110 text-midnight font-extrabold text-xs rounded-xl shadow-lg shadow-goldDark/10 transition-all uppercase tracking-wider outline-none"
               style={{ minHeight: '48px' }}
             >
-              Hemen Premium'a Yüksel
+              Hemen Premium&apos;a Yüksel
             </button>
           </div>
         </div>

@@ -1435,7 +1435,7 @@ export default function AdminPanel() {
                 Ödeme Sistemi Değişiklik Geçmişi ve Güvenlik Denetim İzleri (Audit History)
               </h3>
               <p className="text-[10px] text-softGrey">
-                Ödeme IBAN'ları ve lisans fiyatlarındaki tüm değişikliklerin geçmişini denetleyin. Geçmiş bir ayara geri dönmek için "Son Ayarı Geri Al" butonunu kullanabilirsiniz.
+                Ödeme IBAN&apos;ları ve lisans fiyatlarındaki tüm değişikliklerin geçmişini denetleyin. Geçmiş bir ayara geri dönmek için &quot;Son Ayarı Geri Al&quot; butonunu kullanabilirsiniz.
               </p>
 
               <div className="space-y-2.5 max-h-60 overflow-y-auto pr-2">

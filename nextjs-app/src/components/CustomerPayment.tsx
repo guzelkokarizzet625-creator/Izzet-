@@ -677,7 +677,7 @@ export default function CustomerPayment() {
             )}
 
             <div className="space-y-4 text-xs text-softGrey leading-relaxed">
-              <p>Ödemenizi internet bankacılığı aracılığıyla aşağıdaki resmi IBAN adresine gönderin. Alıcı adı olarak <strong>"{currentBank.accountHolder || 'AL Hukuk Teknolojileri A.Ş.'}"</strong> yazılmalıdır.</p>
+              <p>Ödemenizi internet bankacılığı aracılığıyla aşağıdaki resmi IBAN adresine gönderin. Alıcı adı olarak <strong>&quot;{currentBank.accountHolder || 'AL Hukuk Teknolojileri A.Ş.'}&quot;</strong> yazılmalıdır.</p>
               
               <div className="bg-charcoal p-4 rounded-xl border border-slateGrey/40 space-y-2">
                 <div className="flex justify-between items-center">
