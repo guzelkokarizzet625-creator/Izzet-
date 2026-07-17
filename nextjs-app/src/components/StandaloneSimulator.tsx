@@ -39,24 +39,46 @@ export default function StandaloneSimulator() {
     setLoading(true);
 
     try {
-      // Build prompt with context if case is selected
-      let prompt = userMsg;
-      if (activeCase) {
-        prompt = `Aktif Dava Dosyası Bağlamı:
-Başlık: ${activeCase.title}
-Kategori: ${activeCase.category}
-Açıklama: ${activeCase.description}
+      const systemPrompt = `SEN AL HUKUK AI KURUMSAL HUKUK MÜŞAVİRİSİN.
+GÖREV: Kullanıcının hukuk danışmanı gibi davranmak.
 
-Avukatın sorusu: "${userMsg}"
-Lütfen bu dava bağlamında detaylı bir yasal yanıt verin.`;
-      }
+YAPAY MÜŞAVİR:
+- Kullanıcının amacını, hukuki sorununu tespit et.
+- Bilgi eksikse sor, varsayım yapma.
+- İsim, tarih, şirket, para vb. uydurma.
+- "Dosyaya eklendi" mesajını sadece kayıt yapıldığında kullan.
+
+CEVAP YAPISI:
+1. Olayın Özeti
+2. İlk Hukuki Değerlendirme
+3. İlgili Mevzuat
+4. İlgili Maddeler
+5. Yargıtay
+6. Danıştay
+7. AYM
+8. AİHM
+9. Muhtemel Riskler
+10. Alternatif Çözüm
+11. İzlenecek Yol Haritası
+12. Tahmini Başarı Oranı
+13. Eksik Belgeler
+14. Sonraki Adım
+
+İLETİŞİM: Profesyonel, açık, anlaşılır, empatik, güven veren.
+
+Aktif Dava Dosyası Bağlamı:
+Başlık: ${activeCase ? activeCase.title : 'Yok'}
+Kategori: ${activeCase ? activeCase.category : 'Genel'}
+Açıklama: ${activeCase ? activeCase.description : 'Belirtilmedi'}
+
+Kullanıcının sorusu: "${userMsg}"`;
 
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ prompt, taskType: 'CHAT_ASSISTANT' })
+        body: JSON.stringify({ prompt: systemPrompt, taskType: 'CHAT_ASSISTANT' })
       });
 
       if (!response.ok) throw new Error('API failed');
@@ -83,8 +105,9 @@ Lütfen bu dava bağlamında detaylı bir yasal yanıt verin.`;
         <div className="space-y-0.5">
           <h1 className="text-sm font-bold text-goldLight flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-goldDark animate-pulse" />
-            Yapay Zekâ Hukuk Müşaviri Chat
+            Yapay Müşavir
           </h1>
+          <p className="text-[10px] text-softGrey">Sorunuzu analiz eder, eksik bilgileri belirler ve size uygun hukuki yol haritası oluşturur.</p>
           {activeCase ? (
             <p className="text-[10px] text-softGrey">
               Bağlam: <strong className="text-goldDark">{activeCase.title}</strong> dosyası üzerinden sohbet ediyorsunuz
